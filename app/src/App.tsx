@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { browserIsSupported, clearEverything } from './db'
 import { useReportModel } from './hooks/useReportModel'
+import { useRoute } from './hooks/useRoute'
 import { useStorageHealth } from './hooks/useStorageHealth'
 import { useUnitData } from './hooks/useUnitData'
 import { BrowserGate } from './ui/BrowserGate'
@@ -12,7 +13,7 @@ import { RosterPane } from './ui/RosterPane'
 import { StageNav } from './ui/StageNav'
 import { StageTabs } from './ui/StageTabs'
 import { UnitRail } from './ui/UnitRail'
-import { STAGES, stageIndexOf, type Stage } from './lib/stages'
+import { STAGES, canOpen, forwardBlockedBy, stageIndexOf, type StageState } from './lib/stages'
 import type { FeedSet } from './lib/types'
 
 export function App() {
@@ -21,12 +22,8 @@ export function App() {
 }
 
 function Workspace() {
-  const [unitId, setUnitId] = useState<string | null>(null)
-  const [stage, setStage] = useState<Stage>('import')
+  const [{ unit: unitId, stage, round: roundDate }, go] = useRoute()
   const [asOfDate, setAsOfDate] = useState(() => new Date().toISOString().slice(0, 10))
-  // Which saved round the report shows. null follows the newest one, so a fresh
-  // import is what you see without having to pick it.
-  const [roundDate, setRoundDate] = useState<string | null>(null)
   // Held here rather than in the pane so leaving the import stage does not
   // discard a drop the user would otherwise have to repeat.
   const [feedSet, setFeedSet] = useState<FeedSet | null>(null)
@@ -42,45 +39,53 @@ function Workspace() {
     `${data.snapshots.length}:${data.agents.length}:${data.limraRows.length}`,
   )
 
-  useEffect(() => {
-    if (!unitId && data.units.length > 0) setUnitId(data.units[0].unitId)
-  }, [data.units, unitId])
-
-  const stageIndex = stageIndexOf(stage)
-
   /** The dropped round already exists in the database, so history has something to attach to. */
   const roundSaved =
     feedSet != null &&
     data.snapshots.some((s) => s.unitId === unitIdFor(feedSet) && s.asOfDate === asOfDate)
+
+  const stageState: StageState = {
+    hasRound: current != null,
+    roundSaved,
+    hasModel: model != null,
+  }
+
+  useEffect(() => {
+    if (!unitId && data.units.length > 0) go({ unit: data.units[0].unitId }, true)
+  }, [data.units, unitId, go])
+
+  // A link to a step that turned out to be closed lands on the one that is open,
+  // rather than on an empty screen with no way to tell what went wrong.
+  useEffect(() => {
+    if (!canOpen(stage, stageState)) go({ stage: 'import' }, true)
+  }, [stage, stageState.hasRound, go])
+
+  const stageIndex = stageIndexOf(stage)
+  const blockedReason = forwardBlockedBy(stage, stageState)
 
   return (
     <div className="shell">
       <UnitRail
         units={data.units}
         unitId={unitId}
-        onPickUnit={(id) => {
-          setUnitId(id)
-          setRoundDate(null)
-        }}
+        onPickUnit={(id) => go({ unit: id, round: null })}
         savedRounds={savedRounds}
         currentRound={current?.asOfDate ?? null}
-        onPickRound={setRoundDate}
+        onPickRound={(date) => go({ round: date })}
         onRoundDeleted={(date) => {
-          if (roundDate === date) setRoundDate(null)
+          if (roundDate === date) go({ round: null }, true)
         }}
         health={health}
         onClearAll={async () => {
           if (!confirm('ลบข้อมูลทุกหน่วยทิ้งทั้งหมด กู้คืนไม่ได้ — แน่ใจไหม')) return
           await clearEverything()
-          setUnitId(null)
-          setRoundDate(null)
           setFeedSet(null)
-          setStage('import')
+          go({ unit: null, round: null, stage: 'import' }, true)
         }}
       />
 
       <main className="pane">
-        <StageTabs stage={stage} onPick={setStage} hasRound={current != null} />
+        <StageTabs stage={stage} onPick={(next) => go({ stage: next })} state={stageState} />
 
         {!health.persisted ? <PersistenceNotice onRetry={request} /> : null}
 
@@ -91,10 +96,7 @@ function Workspace() {
             set={feedSet}
             onSetChange={setFeedSet}
             roundSaved={roundSaved}
-            onSaved={(id) => {
-              setUnitId(id)
-              setRoundDate(null)
-            }}
+            onSaved={(id) => go({ unit: id, round: null }, true)}
             savedRounds={savedRounds}
           />
         ) : null}
@@ -129,15 +131,13 @@ function Workspace() {
 
         <StageNav
           backLabel={stageIndex === 0 ? null : STAGES[stageIndex - 1].label}
-          onBack={() => setStage(STAGES[stageIndex - 1].id)}
+          onBack={() => go({ stage: STAGES[stageIndex - 1].id })}
           nextLabel={stage === 'review' ? 'ส่งออก PDF' : STAGES[stageIndex + 1].label}
-          nextEnabled={stage === 'review' ? model != null : stage === 'import' ? roundSaved : true}
-          blockedReason={
-            stage === 'import' && !roundSaved ? 'กด "บันทึกรอบนี้" ก่อนจึงจะไปต่อได้' : null
-          }
+          nextEnabled={blockedReason == null}
+          blockedReason={blockedReason}
           onNext={() => {
             if (stage === 'review') window.print()
-            else setStage(STAGES[stageIndex + 1].id)
+            else go({ stage: STAGES[stageIndex + 1].id })
           }}
         />
       </main>

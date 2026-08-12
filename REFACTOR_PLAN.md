@@ -98,6 +98,12 @@ pattern ที่มีและควรรักษาไว้:
 - `?unit=VP7&stage=limra&round=2026-07-30` ผ่าน History API (ไม่ต้องลง react-router)
 - ยก guard ออกจาก JSX (`nextEnabled` ใน `StageNav`) เป็นตาราง transition ที่เดียว
 - **ผ่านเมื่อ:** refresh แล้วอยู่ขั้นเดิม · ปุ่ม back ของเบราว์เซอร์ย้อนขั้นได้ · เข้า URL ที่ guard ไม่ผ่านแล้วเด้งกลับขั้นที่ถูก
+- **ผลจริง:** `hooks/useRoute.ts` (`useSyncExternalStore` + History API ไม่ลง router) ·
+  guard ย้ายไป `lib/stages.ts` เป็น `canOpen()` / `forwardBlockedBy()` ·
+  `test/navigation.test.ts` 11 test คุมการ parse URL กับตาราง guard
+- **ยังไม่ยืนยัน:** พฤติกรรมปุ่ม back จริงในเบราว์เซอร์ (test คุมเฉพาะส่วน pure)
+- push vs replace: กดเปลี่ยนขั้น/หน่วย/รอบเอง = `push` (back ย้อนได้) ·
+  ระบบแก้ให้เอง (เด้งออกจากขั้นที่ปิด, เลือกหน่วยแรกให้, ลบรอบที่เปิดอยู่) = `replace`
 
 ### P4 · ฐาน MUI + MD3 (ยังไม่แปลง component)
 `feat: วางฐาน MUI พร้อม theme MD3 และ dark mode`

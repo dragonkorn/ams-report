@@ -1,19 +1,14 @@
-import { STAGES, type Stage } from '../lib/stages'
+import { STAGES, canOpen, type Stage, type StageState } from '../lib/stages'
 
-/**
- * The four steps, always all visible.
- *
- * Steps other than the import are closed until a round exists, since every one
- * of them edits something attached to a round.
- */
+/** The four steps, always all visible; the closed ones say so by being disabled. */
 export function StageTabs({
   stage,
   onPick,
-  hasRound,
+  state,
 }: {
   stage: Stage
   onPick: (stage: Stage) => void
-  hasRound: boolean
+  state: StageState
 }) {
   return (
     <div className="stages">
@@ -22,7 +17,7 @@ export function StageTabs({
           key={id}
           className={`stage${stage === id ? ' now' : ''}`}
           onClick={() => onPick(id)}
-          disabled={id !== 'import' && !hasRound}
+          disabled={!canOpen(id, state)}
         >
           <span className="n">{i + 1}</span>
           <span>{label}</span>
