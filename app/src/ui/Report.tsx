@@ -209,16 +209,32 @@ function AgentRow({ row, dataMonth }: { row: ReportRow; dataMonth: number }) {
       <td className={`manual ident${highlight}`}>{statusLabel(row.status)}</td>
       {/* A contract that has to be put right before the quarter closes says so in red. */}
       <td className={`manual ident${highlight}${alert ? ' note-alert' : ''}`}>{row.note}</td>
-      <td className="cell-green">{fmtCount(row.values.caseYtd)}</td>
-      <td className="cell-green">{fmtMoney(row.values.fypYtd)}</td>
-      <td className="cell-green">{fmtMoney(row.values.fycAllYtd)}</td>
-      <td className="cell-green">{fmtMoney(row.values.fycLifeYtd)}</td>
-      <td className={cell(lit.caseSub, 'pink')}>{fmtCount(row.values.caseSubMonth)}</td>
-      <td className={cell(lit.caseApproved, 'green')}>{fmtCount(row.values.caseApprovedMonth)}</td>
-      <td className={cell(lit.fypSub, 'pink')}>{fmtMoney(row.values.fypSubMonth)}</td>
-      <td className={cell(lit.fypApproved, 'green')}>{fmtMoney(row.values.fypApprovedMonth)}</td>
-      <td className={cell(lit.fycAll, 'blue')}>{fmtMoney(row.values.fycAllMonth)}</td>
-      <td className={cell(lit.fycLife, 'blue')}>{fmtMoney(row.values.fycLifeMonth)}</td>
+      <td className={figure(row.values.caseYtd, 'cell-green')}>{fmtCount(row.values.caseYtd)}</td>
+      <td className={figure(row.values.fypYtd, 'cell-green')}>{fmtMoney(row.values.fypYtd)}</td>
+      <td className={figure(row.values.fycAllYtd, 'cell-green')}>
+        {fmtMoney(row.values.fycAllYtd)}
+      </td>
+      <td className={figure(row.values.fycLifeYtd, 'cell-green')}>
+        {fmtMoney(row.values.fycLifeYtd)}
+      </td>
+      <td className={figure(row.values.caseSubMonth, cell(lit.caseSub, 'pink'))}>
+        {fmtCount(row.values.caseSubMonth)}
+      </td>
+      <td className={figure(row.values.caseApprovedMonth, cell(lit.caseApproved, 'green'))}>
+        {fmtCount(row.values.caseApprovedMonth)}
+      </td>
+      <td className={figure(row.values.fypSubMonth, cell(lit.fypSub, 'pink'))}>
+        {fmtMoney(row.values.fypSubMonth)}
+      </td>
+      <td className={figure(row.values.fypApprovedMonth, cell(lit.fypApproved, 'green'))}>
+        {fmtMoney(row.values.fypApprovedMonth)}
+      </td>
+      <td className={figure(row.values.fycAllMonth, cell(lit.fycAll, 'blue'))}>
+        {fmtMoney(row.values.fycAllMonth)}
+      </td>
+      <td className={figure(row.values.fycLifeMonth, cell(lit.fycLife, 'blue'))}>
+        {fmtMoney(row.values.fycLifeMonth)}
+      </td>
       {row.months.map((value, m) => {
         const state = gridCellState(value ?? null, m, dataMonth)
         const fill =
@@ -229,30 +245,30 @@ function AgentRow({ row, dataMonth }: { row: ReportRow; dataMonth: number }) {
               : ''
         const provisional = m === row.provisionalMonth ? ' provisional' : ''
         return (
-          <td key={m} className={`grid-cell ${fill}${provisional}`.trim()}>
+          <td key={m} className={figure(value, `grid-cell ${fill}${provisional}`.trim())}>
             {fmtGridCell(value)}
           </td>
         )
       })}
       {/* The premium-lost cell always takes the band of the percentage beside it. */}
-      <td className={`manual ${bandClass(row.limra.p12mBand)}`}>
+      <td className={figure(row.limra.p12mPercent, `manual ${bandClass(row.limra.p12mBand)}`)}>
         {fmtPercent(row.limra.p12mPercent)}
       </td>
-      <td className={`manual ${bandClass(row.limra.p12mBand)}`}>
+      <td className={figure(row.limra.p12mPremiumLost, `manual ${bandClass(row.limra.p12mBand)}`)}>
         {row.limra.p12mPremiumLost == null ? '' : fmtCount(row.limra.p12mPremiumLost)}
       </td>
-      <td className={`manual ${bandClass(row.limra.ytdBand)}`}>
+      <td className={figure(row.limra.ytdPercent, `manual ${bandClass(row.limra.ytdBand)}`)}>
         {fmtPercent(row.limra.ytdPercent)}
       </td>
-      <td className={`manual ${bandClass(row.limra.ytdBand)}`}>
+      <td className={figure(row.limra.ytdPremiumLost, `manual ${bandClass(row.limra.ytdBand)}`)}>
         {row.limra.ytdPremiumLost == null ? '' : fmtCount(row.limra.ytdPremiumLost)}
       </td>
       {/* Each CAREER condition is marked on its own cell, not by the row tint. */}
       <td className={cell(row.fycTarget === FYC_RUNGS[1], 'green')}>{fmtCount(row.fycTarget)}</td>
-      <td className={cell(row.fycShortfall == null, 'green')}>
+      <td className={figure(row.fycShortfall, cell(row.fycShortfall == null, 'green'))}>
         {row.fycShortfall == null ? 'ครบแล้ว' : fmtMoney(row.fycShortfall)}
       </td>
-      <td className={cell(row.values.caseYtd >= CAREER_CASES, 'green')}>
+      <td className={figure(row.values.caseYtd, cell(row.values.caseYtd >= CAREER_CASES, 'green'))}>
         {fmtCount(row.values.caseYtd)}
       </td>
       <td className={cell(careerOutOfReach(row.activeCount, dataMonth), 'gray')}>
@@ -267,29 +283,34 @@ function TotalRow({ model }: { model: ReportModel }) {
   const monthTotal = (m: number) =>
     model.rows.reduce((s, r) => s + (r.months[m] ?? 0), 0)
 
+  /** One total cell, printed red when the unit is behind on that figure. */
+  const total = (value: number, fmt: (n: number) => string) => (
+    <td className={figure(value)}>{fmt(value)}</td>
+  )
+
   return (
     <tr className="total-row">
       <td colSpan={6} className="left">
         รวม
       </td>
-      <td>{fmtCount(sum((r) => r.values.caseYtd))}</td>
-      <td>{fmtMoney(sum((r) => r.values.fypYtd))}</td>
-      <td>{fmtMoney(sum((r) => r.values.fycAllYtd))}</td>
-      <td>{fmtMoney(sum((r) => r.values.fycLifeYtd))}</td>
-      <td>{fmtCount(sum((r) => r.values.caseSubMonth))}</td>
-      <td>{fmtCount(sum((r) => r.values.caseApprovedMonth))}</td>
-      <td>{fmtMoney(sum((r) => r.values.fypSubMonth))}</td>
-      <td>{fmtMoney(sum((r) => r.values.fypApprovedMonth))}</td>
-      <td>{fmtMoney(sum((r) => r.values.fycAllMonth))}</td>
-      <td>{fmtMoney(sum((r) => r.values.fycLifeMonth))}</td>
+      {total(sum((r) => r.values.caseYtd), fmtCount)}
+      {total(sum((r) => r.values.fypYtd), fmtMoney)}
+      {total(sum((r) => r.values.fycAllYtd), fmtMoney)}
+      {total(sum((r) => r.values.fycLifeYtd), fmtMoney)}
+      {total(sum((r) => r.values.caseSubMonth), fmtCount)}
+      {total(sum((r) => r.values.caseApprovedMonth), fmtCount)}
+      {total(sum((r) => r.values.fypSubMonth), fmtMoney)}
+      {total(sum((r) => r.values.fypApprovedMonth), fmtMoney)}
+      {total(sum((r) => r.values.fycAllMonth), fmtMoney)}
+      {total(sum((r) => r.values.fycLifeMonth), fmtMoney)}
       {Array.from({ length: 12 }, (_, m) => (
-        <td key={m} className="grid-cell">
+        <td key={m} className={figure(monthTotal(m), 'grid-cell')}>
           {fmtGridCell(monthTotal(m))}
         </td>
       ))}
       <td colSpan={4} />
       <td colSpan={2} />
-      <td>{fmtCount(sum((r) => r.values.caseYtd))}</td>
+      {total(sum((r) => r.values.caseYtd), fmtCount)}
       <td />
     </tr>
   )
@@ -314,34 +335,34 @@ function SummaryRow({
   return (
     <tr>
       <td className="summary-label">{line.label}</td>
-      <td className="cell-pink">{fmt(line.monthEndOfLastYear)}</td>
-      <td>{fmt(line.mtdLastYear)}</td>
+      <td className={figure(line.monthEndOfLastYear, 'cell-pink')}>
+        {fmt(line.monthEndOfLastYear)}
+      </td>
+      <td className={figure(line.mtdLastYear)}>{fmt(line.mtdLastYear)}</td>
       {/* The FYC feeds carry no submitted figure, so that cell stays plain. */}
-      <td className={line.cmtdSub == null ? undefined : 'cell-pink'}>
+      <td className={figure(line.cmtdSub, line.cmtdSub == null ? undefined : 'cell-pink')}>
         {line.cmtdSub == null ? '' : fmt(line.cmtdSub)}
       </td>
-      <td className={current}>{fmt(line.mtdCurrentMonth)}</td>
-      <td className={`cell-pink${line.growthMonth < 0 ? ' growth-down' : ''}`}>
-        {fmtGeneral(line.growthMonth)}
+      <td className={figure(line.mtdCurrentMonth, current)}>{fmt(line.mtdCurrentMonth)}</td>
+      <td className={figure(line.growthMonth, 'cell-pink')}>{fmtGeneral(line.growthMonth)}</td>
+      <td className={figure(line.yearEndOfLastYear, 'cell-yellow')}>
+        {fmt(line.yearEndOfLastYear)}
       </td>
-      <td className="cell-yellow">{fmt(line.yearEndOfLastYear)}</td>
-      <td>{fmt(line.ytdLastYear)}</td>
-      <td className={current}>{fmt(line.ytdCurrentYear)}</td>
-      <td className={`cell-yellow${line.growthYtd < 0 ? ' growth-down' : ''}`}>
-        {fmtGeneral(line.growthYtd)}
-      </td>
+      <td className={figure(line.ytdLastYear)}>{fmt(line.ytdLastYear)}</td>
+      <td className={figure(line.ytdCurrentYear, current)}>{fmt(line.ytdCurrentYear)}</td>
+      <td className={figure(line.growthYtd, 'cell-yellow')}>{fmtGeneral(line.growthYtd)}</td>
       {first ? (
         <>
-          <td className="manual cell-peach" rowSpan={4}>
+          <td className={figure(unit?.p12mPercent ?? null, 'manual cell-peach')} rowSpan={4}>
             {fmtPercent(unit?.p12mPercent ?? null)}
           </td>
-          <td className="manual cell-peach" rowSpan={4}>
+          <td className={figure(unit?.p12mPremiumLost ?? null, 'manual cell-peach')} rowSpan={4}>
             {unit?.p12mPremiumLost == null ? '' : fmtCount(unit.p12mPremiumLost)}
           </td>
-          <td className="manual cell-peach" rowSpan={4}>
+          <td className={figure(unit?.ytdPercent ?? null, 'manual cell-peach')} rowSpan={4}>
             {fmtPercent(unit?.ytdPercent ?? null)}
           </td>
-          <td className="manual cell-peach" rowSpan={4}>
+          <td className={figure(unit?.ytdPremiumLost ?? null, 'manual cell-peach')} rowSpan={4}>
             {unit?.ytdPremiumLost == null ? '' : fmtCount(unit.ytdPremiumLost)}
           </td>
         </>
@@ -352,6 +373,18 @@ function SummaryRow({
 
 function bandClass(band: LimraBand): string {
   return band ? `limra-${band}` : ''
+}
+
+/**
+ * Class list for a cell holding a figure, red when the figure is below zero.
+ *
+ * The source sheets only mark backwards growth that way, but a negative FYC or
+ * a negative month total means the same thing and is easy to read straight past
+ * in a wall of black digits, so every figure the report prints follows the rule.
+ */
+function figure(value: number | null | undefined, className?: string): string | undefined {
+  const classes = [className, value != null && value < 0 ? 'negative' : null].filter(Boolean)
+  return classes.length > 0 ? classes.join(' ') : undefined
 }
 
 export function statusLabel(status: ReportRow['status']): string {

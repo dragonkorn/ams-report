@@ -99,6 +99,45 @@ describe.skipIf(!existsSync(FIXTURES))('vp7 renders from CSVs plus seeded histor
   })
 })
 
+describe.skipIf(!existsSync(FIXTURES))('figures below zero are printed red', () => {
+  it('marks a negative figure wherever it appears, and nothing else', () => {
+    const dir = join(FIXTURES, 'vp7')
+    const feeds = readdirSync(dir)
+      .filter((f) => f.endsWith('.csv'))
+      .map((f) => parseFeed(f, decodeThaiCsv(readFileSync(join(dir, f)))))
+    const set = classifyFeeds(feeds)
+    const snapshot = buildSnapshot(set, 'VP7', AS_OF)
+    const wb = importWorkbook(toArrayBuffer(readFileSync(join(dir, 'report_vp7.xlsx'))), 'VP7')
+
+    const model = buildReport({
+      snapshot,
+      history: [snapshot],
+      agents: wb.agents,
+      limra: {},
+      limraUnit: null,
+      seededGrids: wb.grids,
+      heading: wb.heading,
+      dateLabel: wb.dateLabel,
+      monthLabel: thaiMonthShort(AS_OF),
+      rallyLines: [],
+    })
+    const html = renderToStaticMarkup(<Report model={model} showManual={false} />)
+
+    // This round really does print figures below zero — a unit that went
+    // backwards year on year, and two last-year totals that came out negative.
+    const marked = [...html.matchAll(/class="[^"]*\bnegative\b[^"]*">([^<]*)</g)].map((m) => m[1])
+    expect(marked.length).toBeGreaterThan(0)
+    for (const text of marked) expect(text, 'marked but not negative').toMatch(/^-/)
+
+    // And nothing below zero is left unmarked, which is the half that would go
+    // unnoticed: the figure is still printed, only in black.
+    const missed = [...html.matchAll(/<td(?![^>]*\bnegative\b)[^>]*>(-[\d][^<]*)</g)].map(
+      (m) => m[1],
+    )
+    expect(missed).toEqual([])
+  })
+})
+
 describe.skipIf(!existsSync(FIXTURES))('a round dated in the wrong month is caught', () => {
   it('flags every row when the seeded history and the snapshot overlap', () => {
     const dir = join(FIXTURES, 'vp7')

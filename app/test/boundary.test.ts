@@ -43,7 +43,7 @@ const PINNED = [
   'month-head',
   'grid-cell',
   'provisional',
-  'growth-down',
+  'negative',
   'note-alert',
   'rally',
   'rally-block',

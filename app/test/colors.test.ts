@@ -160,6 +160,22 @@ describe.skipIf(!existsSync(FIXTURES))('cell colours', () => {
     expect(ws.getCell('S6').alignment?.textRotation).toBeUndefined()
     expect(ws.getColumn('S').width).toBeLessThan(4)
   })
+
+  it('writes every figure below zero in red, and only those', async () => {
+    const { ws } = await exportVp7()
+    const negatives: string[] = []
+    ws.eachRow((row) =>
+      row.eachCell((cell) => {
+        if (typeof cell.value !== 'number') return
+        const red = cell.font?.color?.argb === RED
+        if (cell.value < 0) negatives.push(cell.address)
+        // A red figure that is not negative would be the rule firing on the
+        // wrong cell; both directions matter, so both are checked.
+        expect(red, `${cell.address} = ${cell.value}`).toBe(cell.value < 0)
+      }),
+    )
+    expect(negatives.length).toBeGreaterThan(0)
+  })
 })
 
 function fill(ws: Worksheet, addr: string): string | undefined {

@@ -439,20 +439,12 @@ function writeSummary(ws: Worksheet, headTop: number, top: number, model: Report
       fill: line.cmtdSub == null ? undefined : SUMMARY_FILLS.H,
     })
     set(ws, `I${r}`, line.mtdCurrentMonth, { format: NUM, fill: current })
-    // Growth that went backwards is written in red.
-    set(ws, `J${r}`, line.growthMonth, {
-      format: GENERAL,
-      fill: SUMMARY_FILLS.J,
-      color: line.growthMonth < 0 ? FILL.red : undefined,
-    })
+    // Growth that went backwards turns red through the rule in `set`.
+    set(ws, `J${r}`, line.growthMonth, { format: GENERAL, fill: SUMMARY_FILLS.J })
     set(ws, `K${r}`, line.yearEndOfLastYear, { format: NUM, fill: SUMMARY_FILLS.K })
     set(ws, `L${r}`, line.ytdLastYear, { format: NUM, fill: SUMMARY_FILLS.L })
     set(ws, `M${r}`, line.ytdCurrentYear, { format: NUM, fill: current })
-    set(ws, `N${r}`, line.growthYtd, {
-      format: GENERAL,
-      fill: SUMMARY_FILLS.N,
-      color: line.growthYtd < 0 ? FILL.red : undefined,
-    })
+    set(ws, `N${r}`, line.growthYtd, { format: GENERAL, fill: SUMMARY_FILLS.N })
   })
 
   // Unit-level Limra spans the first two summary lines, with a `%` under it.
@@ -503,7 +495,11 @@ interface CellStyle {
 
 function set(ws: Worksheet, addr: string, value: string | number | null, style: CellStyle = {}) {
   if (value != null) ws.getCell(addr).value = value
-  styleCell(ws, addr, style)
+  // Figures below zero are written in red, matching the on-screen report. A
+  // colour asked for by the caller wins: it is saying something else about the
+  // cell, and this rule has nothing to add to it.
+  const negative = typeof value === 'number' && value < 0
+  styleCell(ws, addr, negative && !style.color ? { ...style, color: FILL.red } : style)
 }
 
 function merged(ws: Worksheet, range: string, value: string | number | null, style: CellStyle) {

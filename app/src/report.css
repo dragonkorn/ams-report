@@ -249,8 +249,9 @@
   background: var(--gray);
 }
 
-/* Growth that went backwards. */
-.report .growth-down {
+/* Any figure below zero: growth that went backwards, a negative FYC, a total
+   that came out short. Red is the only marking these get. */
+.report .negative {
   color: var(--red);
 }
 
