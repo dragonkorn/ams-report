@@ -122,8 +122,25 @@ npm i @mui/material @emotion/react @emotion/styled @mui/icons-material \
 - `theme/ThemeModeProvider.tsx` — `light` / `dark` / `system` เก็บ `localStorage['ams.theme']` เริ่มต้น `light`
 - ครอบ `ThemeProvider` + `CssBaseline` + `LocalizationProvider` (`AdapterDayjs` + plugin `buddhistEra`, locale `th`) ใน [`main.tsx`](app/src/main.tsx)
 - **`CssBaseline` ต้องไม่กิน `.report`** — ตรวจ PNG ก่อน/หลังต้องเหมือนเดิม
-- Sarabun bundle เป็นไฟล์ในโปรเจค ไม่ดึงจาก Google Fonts (static site + ไม่พึ่ง network)
 - **ผ่านเมื่อ:** build ผ่าน · หน้าตายังเป็นของเดิม · export PNG เทียบก่อน/หลังเหมือนเดิม
+
+**ผลจริง**
+
+- MUI **9.3.1** (ไม่ใช่ v7 ตามที่เดาไว้) — มี `cssVariables` + `colorSchemes` ในตัว
+  ใช้ `ThemeProvider defaultMode="light" modeStorageKey="ams.theme"` จบทั้ง 3 ข้อ
+  (ค่าเริ่มต้น light · จำใน localStorage · ตัวเลือกในแอปชนะ OS) ไม่ต้องเขียน provider เอง
+- token MD3 **generate ตอน build ไม่ใช่ตอน runtime** — `scripts/gen-md3.mts` +
+  `@material/material-color-utilities` (devDependency) เขียนออกมาเป็น `src/theme/tokens.ts`
+  42 role × 2 mode สั่งใหม่ด้วย `npm run tokens` · เบราว์เซอร์ไม่ต้องโหลด lib คำนวณสี
+- เพิ่ม tonal family ที่ MD3 ไม่มี: `success` `warning` (blend เข้า seed แล้ว)
+- bundle 641 → **762 KB** (gzip 214 → 256) เพิ่ม ~42 KB gzip
+- **ตัดสินเรื่องฟอนต์: ยังไม่ bundle webfont ใด ๆ** — ทั้ง chrome และ report ใช้ฟอนต์ในเครื่อง
+  เหตุผล: `imageExport.ts` ตั้ง `skipFonts: true` ถ้า bundle Sarabun เข้ามาตอนนี้ รูป PNG
+  จะไม่ฝังฟอนต์แล้วออกมาเพี้ยน · เรื่องนี้ผูกกับคำถามข้อ 4 ของ PLAN.md §8 (ยอมให้ต่างจาก
+  CordiaUPC ได้แค่ไหน) ซึ่งยังไม่มีคำตอบ → แยกเป็นงานของตัวเอง ไม่รวมกับ P4
+- ตรวจแล้วว่า `CssBaseline` ไม่แตะ replica: กฎที่มันใส่คือ `html` box-sizing, `body`,
+  และ `strong, b` — ซึ่ง `Report.tsx` ไม่มี `<b>` เลย และ `.report` ตั้ง font/สีของตัวเองครบ
+- **ยังไม่ยืนยันด้วยตา:** dev server resolve module ครบไม่มี error แต่ยังไม่ได้เทียบ PNG ก่อน/หลัง
 
 ### P5 · แปลง component ทีละตัว
 `feat: เปลี่ยน UI มาใช้ MUI ตาม Material Design`

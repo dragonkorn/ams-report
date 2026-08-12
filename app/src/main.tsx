@@ -1,11 +1,29 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
+import CssBaseline from '@mui/material/CssBaseline'
+import { ThemeProvider } from '@mui/material/styles'
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider'
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
+import dayjs from 'dayjs'
+import buddhistEra from 'dayjs/plugin/buddhistEra'
+import 'dayjs/locale/th'
 import { App } from './App'
+import { theme } from './theme'
 import './styles.css'
 import './report.css'
 
+// Dates are stored as ISO, in the Gregorian calendar the source files use, and
+// shown in the Buddhist era the reports are written in.
+dayjs.extend(buddhistEra)
+dayjs.locale('th')
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    <ThemeProvider theme={theme} defaultMode="light" modeStorageKey="ams.theme">
+      <CssBaseline />
+      <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="th">
+        <App />
+      </LocalizationProvider>
+    </ThemeProvider>
   </StrictMode>,
 )
