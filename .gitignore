@@ -1,0 +1,11 @@
+.DS_Store
+*.pkg
+
+# Real production data: agent names, codes, premiums, commissions.
+# Never leaves the machine — see doc/04-architecture.md
+exampleFiles/
+exampleFiles_2/
+*.pdf
+*.zip
+*.xlsx
+*.csv

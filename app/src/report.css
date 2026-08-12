@@ -1,0 +1,258 @@
+/*
+ * The replica.
+ *
+ * The source is an Excel sheet printed to Letter landscape at 35% scale with
+ * CordiaUPC. That font ships with Office rather than being redistributable, so
+ * it is requested by name and only falls back to a bundled face when the machine
+ * doing the exporting does not have it. Since the deliverable is a PDF printed
+ * on that same machine, naming the local font gives an exact match for free.
+ */
+.report {
+  /* Shrink-to-fit on the roster table so the blocks below can match its width
+     exactly instead of stretching to the viewport. */
+  display: inline-block;
+  min-width: 100%;
+
+  --pale-green: #ccffcc;
+  --pink: #ffccff;
+  --pale-blue: #ccffff;
+  --lime: #99ff33;
+  --yellow: #ffff00;
+  --peach: #ffcc66;
+  --red: #ff0000;
+  --gray: #808080;
+
+  background: #fff;
+  color: #000;
+  font-family: CordiaUPC, 'Cordia New', Sarabun, var(--ui);
+  font-size: 11px;
+  line-height: 1.25;
+  padding: 8px;
+}
+
+.report table {
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The roster table sets the width; everything below fills the same box. */
+.report > table:first-of-type {
+  width: 100%;
+}
+
+.report-lower {
+  display: flex;
+  align-items: stretch;
+  margin-top: 6px;
+}
+
+.report-lower .summary {
+  flex: 0 1 auto;
+}
+
+.report-lower .rally-block {
+  flex: 1 1 40%;
+  table-layout: fixed;
+}
+
+.report .footnote {
+  width: 100%;
+}
+
+.report th,
+.report td {
+  border: 0.5px solid #808080;
+  padding: 1px 3px;
+  text-align: center;
+  white-space: nowrap;
+  font-weight: 400;
+}
+
+.report th {
+  font-weight: 700;
+}
+
+.report .left {
+  text-align: left;
+}
+
+.report .band-year {
+  background: var(--pale-green);
+}
+.report .band-month {
+  background: var(--pink);
+}
+.report .band-fyc {
+  background: var(--pale-blue);
+}
+.report .band-active {
+  background: var(--lime);
+}
+.report .band-q1 {
+  background: var(--pale-green);
+}
+.report .band-q2 {
+  background: var(--yellow);
+}
+.report .band-q3 {
+  background: var(--peach);
+}
+.report .band-q4 {
+  background: var(--pale-blue);
+}
+.report .band-career {
+  background: var(--red);
+  color: #fff;
+  font-weight: 700;
+}
+
+.report .limra-green {
+  background: #ccffcc;
+}
+.report .limra-yellow {
+  background: #ffff00;
+}
+.report .limra-orange {
+  background: #ffc000;
+}
+.report .limra-red {
+  background: #ff0000;
+  color: #fff;
+}
+
+.report .total-row td {
+  font-weight: 700;
+  background: #f2f2f2;
+}
+
+.report .summary-label {
+  text-align: left;
+  font-weight: 700;
+}
+
+.report .rally {
+  background: var(--yellow);
+  color: #c00000;
+  font-weight: 700;
+  font-size: 13px;
+  padding: 2px;
+}
+
+.report .confidential {
+  font-weight: 700;
+  padding: 3px;
+}
+
+/*
+ * The month names stand on end, reading bottom to top, so each of the twelve
+ * grid columns only has to be as wide as the two-digit count inside it. The
+ * span carries the rotation: rotating the cell itself would take its borders
+ * with it.
+ */
+.report .month-head {
+  padding: 2px 1px;
+}
+.report .month-head span {
+  display: inline-block;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+}
+.report .month-head,
+.report .grid-cell {
+  width: 1.6em;
+}
+
+/* A cell whose value was typed rather than derived, shown only while reviewing. */
+.report.show-manual .manual {
+  outline: 1.5px solid #0e6a60;
+  outline-offset: -1.5px;
+}
+
+/* A month still being accumulated — its figure will firm up next round. */
+.report .provisional {
+  font-style: italic;
+}
+
+@media print {
+  @page {
+    size: letter landscape;
+    margin: 5mm;
+  }
+
+  body {
+    background: #fff;
+  }
+
+  /* Only the report reaches the paper. */
+  body * {
+    visibility: hidden;
+  }
+  .report,
+  .report * {
+    visibility: visible;
+  }
+  .report {
+    position: absolute;
+    inset: 0;
+    padding: 0;
+  }
+
+  .report table {
+    width: 100%;
+  }
+
+  /* Excel's own fills do not print without this. */
+  .report th,
+  .report td {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .report.show-manual .manual {
+    outline: none;
+  }
+}
+
+/* Whole-row tints: suspended contracts, and whoever produced this month. */
+.report .ident.row-suspended {
+  background: var(--yellow);
+}
+.report .ident.row-produced {
+  background: var(--pale-green);
+}
+
+/* Single cells painted by their own rule rather than the row's. */
+.report .cell-green {
+  background: var(--pale-green);
+}
+.report .cell-pink {
+  background: var(--pink);
+}
+.report .cell-blue {
+  background: var(--pale-blue);
+}
+.report .cell-yellow {
+  background: var(--yellow);
+}
+.report .cell-peach {
+  background: var(--peach);
+}
+.report .cell-gray {
+  background: var(--gray);
+}
+
+/* Growth that went backwards. */
+.report .growth-down {
+  color: var(--red);
+}
+
+/* A contract that has to be put right before the quarter closes. */
+.report .note-alert {
+  color: var(--red);
+  font-weight: 700;
+}
+
+/* The review outlines are a working aid; they come off for image export. */
+.report.exporting .manual {
+  outline: none;
+}
