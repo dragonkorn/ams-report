@@ -101,4 +101,12 @@ describe('the replica stylesheet keeps every rule it paints with', () => {
   it.each(PINNED)('.%s is still defined', (name) => {
     expect(defined.has(name)).toBe(true)
   })
+
+  // It used to read one variable from the app's stylesheet, which meant a change
+  // to the app's font could reach the printed sheet.
+  it('borrows no custom property it does not declare itself', () => {
+    const used = new Set([...css.matchAll(/var\((--[\w-]+)/g)].map((m) => m[1]))
+    const declared = new Set([...css.matchAll(/(--[\w-]+)\s*:/g)].map((m) => m[1]))
+    expect([...used].filter((name) => !declared.has(name))).toEqual([])
+  })
 })

@@ -29,7 +29,10 @@
 
   background: #fff;
   color: #000;
-  font-family: CordiaUPC, 'Cordia New', Sarabun, var(--ui);
+  /* Self-contained on purpose: nothing here may depend on the app's stylesheet,
+     which follows a theme this sheet must not. */
+  font-family: CordiaUPC, 'Cordia New', Sarabun, 'Noto Sans Thai', Thonburi,
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   font-size: 11px;
   line-height: 1.25;
   padding: 8px;

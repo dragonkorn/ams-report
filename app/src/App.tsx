@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
+import Snackbar from '@mui/material/Snackbar'
 import Stack from '@mui/material/Stack'
 import { browserIsSupported, clearEverything } from './db'
 import { useReportModel } from './hooks/useReportModel'
@@ -32,6 +33,9 @@ function Workspace() {
   // discard a drop the user would otherwise have to repeat.
   const [feedSet, setFeedSet] = useState<FeedSet | null>(null)
   const [clearing, setClearing] = useState(false)
+  // Finished work is announced and then gets out of the way; only problems stay
+  // on screen, where they can be read as long as they are still true.
+  const [done, setDone] = useState<string | null>(null)
 
   const data = useUnitData(unitId)
   const unit = data.units.find((u) => u.unitId === unitId) ?? null
@@ -98,6 +102,8 @@ function Workspace() {
             roundSaved={roundSaved}
             onSaved={(id) => go({ unit: id, round: null }, true)}
             savedRounds={savedRounds}
+            firstRun={data.units.length === 0}
+            onDone={setDone}
           />
         ) : null}
 
@@ -138,12 +144,21 @@ function Workspace() {
         />
       </Stack>
 
+      <Snackbar
+        open={done != null}
+        autoHideDuration={5000}
+        onClose={() => setDone(null)}
+        message={done ?? ''}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      />
+
       <ConfirmDialog
         open={clearing}
         title="ล้างข้อมูลทั้งหมด"
         body="ทุกหน่วย ทุกรอบ และทุกอย่างที่พิมพ์มือจะหายถาวร ประวัติ snapshot สร้างใหม่ไม่ได้ เพราะระบบ AIA ให้โหลดแต่ข้อมูลปัจจุบัน"
         confirmLabel="ล้างทั้งหมด"
         destructive
+        confirmPhrase="ล้างทั้งหมด"
         onCancel={() => setClearing(false)}
         onConfirm={async () => {
           setClearing(false)

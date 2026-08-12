@@ -23,6 +23,7 @@ import { applyWorkbook, findRoundWithSameFigures, saveRound } from '../db/repo'
 import type { Feed, FeedSet } from '../lib/types'
 import { FYC_COLUMNS } from '../lib/types'
 import { Dropzone } from './Dropzone'
+import { EmptyState } from './EmptyState'
 
 interface Props {
   asOfDate: string
@@ -35,6 +36,10 @@ interface Props {
   onSaved: (unitId: string) => void
   /** Rounds already stored for the unit being imported, newest last. */
   savedRounds: string[]
+  /** Nothing has ever been imported on this machine. */
+  firstRun: boolean
+  /** Announces a finished import; the pane keeps only errors on screen. */
+  onDone: (message: string) => void
 }
 
 export function ImportPane({
@@ -45,10 +50,11 @@ export function ImportPane({
   roundSaved,
   onSaved,
   savedRounds,
+  firstRun,
+  onDone,
 }: Props) {
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
-  const [workbookNote, setWorkbookNote] = useState<string | null>(null)
   const [duplicateRound, setDuplicateRound] = useState<string | null>(null)
 
   // Two rounds holding the same figures make the month grid contradict itself,
@@ -71,7 +77,6 @@ export function ImportPane({
 
   async function readCsvFiles(files: File[]) {
     setError(null)
-    setWorkbookNote(null)
     try {
       const feeds: Feed[] = []
       for (const file of files) {
@@ -99,6 +104,7 @@ export function ImportPane({
         names: namesFrom(set),
       })
       onSaved(unitId)
+      onDone(`บันทึกรอบ ${asOfDate} ของ ${unitId} แล้ว`)
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
     } finally {
@@ -127,7 +133,7 @@ export function ImportPane({
         agencyCode: set.unitCode,
         dateLabel: thaiDateLabel(asOfDate),
       })
-      setWorkbookNote(
+      onDone(
         `ไฟล์ลงวันที่ ${imported.dateLabel || imported.asOfDate} — นำเข้าแล้ว ${imported.agents.length} คน · กริดย้อนหลัง ${Object.keys(imported.grids).length} แถว · Limra ${imported.limra.length} แถว`,
       )
     } catch (e) {
@@ -154,6 +160,8 @@ export function ImportPane({
           slotProps={{ textField: { size: 'small', sx: { width: 190 } } }}
         />
       </Stack>
+
+      {firstRun ? <EmptyState /> : null}
 
       <Dropzone accept=".csv" multiple onFiles={readCsvFiles} title="ลากไฟล์ CSV ทั้ง 8 ไฟล์มาวางที่นี่">
         ไม่ต้องเรียงลำดับ ไม่ต้องเปลี่ยนชื่อไฟล์ — ระบบอ่านชนิดจากหัวไฟล์
@@ -246,12 +254,6 @@ export function ImportPane({
                 ต้องเข้าระบบก่อน ประวัติจึงจะมีที่เกาะ
               </Alert>
             )}
-
-            {workbookNote ? (
-              <Alert severity="success" sx={{ mt: 1.5 }}>
-                {workbookNote}
-              </Alert>
-            ) : null}
           </Box>
         </>
       ) : null}

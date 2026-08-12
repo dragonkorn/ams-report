@@ -1,5 +1,7 @@
+import { useState } from 'react'
 import Button from '@mui/material/Button'
 import Dialog from '@mui/material/Dialog'
+import TextField from '@mui/material/TextField'
 import DialogActions from '@mui/material/DialogActions'
 import DialogContent from '@mui/material/DialogContent'
 import DialogContentText from '@mui/material/DialogContentText'
@@ -12,6 +14,8 @@ interface Props {
   confirmLabel: string
   /** Marks the action as one that destroys data that cannot be downloaded again. */
   destructive?: boolean
+  /** When set, the word has to be typed before the action unlocks. */
+  confirmPhrase?: string
   onCancel: () => void
   onConfirm: () => void
 }
@@ -28,22 +32,42 @@ export function ConfirmDialog({
   body,
   confirmLabel,
   destructive,
+  confirmPhrase,
   onCancel,
   onConfirm,
 }: Props) {
+  const [typed, setTyped] = useState('')
+  const locked = confirmPhrase != null && typed.trim() !== confirmPhrase
+
+  function close(run: () => void) {
+    setTyped('')
+    run()
+  }
+
   return (
-    <Dialog open={open} onClose={onCancel} maxWidth="xs">
+    <Dialog open={open} onClose={() => close(onCancel)} maxWidth="xs">
       <DialogTitle>{title}</DialogTitle>
       <DialogContent>
         <DialogContentText>{body}</DialogContentText>
+        {confirmPhrase != null ? (
+          <TextField
+            autoFocus
+            fullWidth
+            sx={{ mt: 2 }}
+            label={`พิมพ์ "${confirmPhrase}" เพื่อยืนยัน`}
+            value={typed}
+            onChange={(e) => setTyped(e.target.value)}
+          />
+        ) : null}
       </DialogContent>
       <DialogActions>
-        <Button onClick={onCancel}>ยกเลิก</Button>
+        <Button onClick={() => close(onCancel)}>ยกเลิก</Button>
         <Button
-          onClick={onConfirm}
+          onClick={() => close(onConfirm)}
           variant="contained"
           color={destructive ? 'error' : 'primary'}
-          autoFocus
+          disabled={locked}
+          autoFocus={confirmPhrase == null}
         >
           {confirmLabel}
         </Button>

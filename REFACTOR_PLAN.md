@@ -163,6 +163,13 @@ npm i @mui/material @emotion/react @emotion/styled @mui/icons-material \
 **ไม่ใช้ `DataGrid`** ที่ตาราง Limra — ตารางนั้นต้องรับ paste ทั้งบล็อกจาก Excel และ Enter เลื่อนลง ([`LimraPane.tsx:61-85`](app/src/ui/LimraPane.tsx#L61-L85)) จะไปสู้กับ event ของ DataGrid
 
 - **ผ่านเมื่อ:** ทำครบ flow 4 ขั้นได้จริงในหน่วยเดียว · test เขียว · PNG ไม่เปลี่ยน
+- **ผลจริง:** แปลงครบทุก component ของ chrome · `test/render.test.tsx` เรนเดอร์ chrome
+  ด้วย theme จริง 1 รอบ กัน prop ที่ผ่าน type check แต่พังตอนเรนเดอร์
+- **กับดักที่เจอ:** MUI 9 ตัด system props ออกจาก `Stack` แล้ว (`alignItems` / `flexWrap`
+  ต้องอยู่ใน `sx`) · `Typography paragraph` ถูกถอด · ชื่อไอคอนคือ `DeleteOutlined`
+  ไม่ใช่ `DeleteOutline` · ต้อง augment `CssThemeVariables { enabled: true }`
+  ไม่งั้น `theme.colorSchemes` ไม่มีใน type
+- bundle 762 → **1,134 KB** (gzip 256 → 372)
 
 ### P6 · UX ตาม Material + เก็บกวาด
 `feat: ปรับ UX ตาม Material แล้วลบ CSS เดิมที่ไม่ใช้`
@@ -177,6 +184,17 @@ npm i @mui/material @emotion/react @emotion/styled @mui/icons-material \
 - density: desktop-only → compact ทั้งแอป
 - ตัด `report.css` ให้เลิกพึ่ง `var(--ui)` แล้วลบ class ที่ไม่มีใครใช้ออกจาก `styles.css`
 - **ผ่านเมื่อ:** `styles.css` เหลือเฉพาะ reset · ไม่มี inline style ที่ย้ายเข้า `sx` ได้แล้ว · test เขียว
+- **ผลจริง:** `styles.css` **ลบทิ้งทั้งไฟล์** (502 บรรทัด → 0) — `CssBaseline` ทำ reset แทน
+  และสี band ของ Limra ย้ายไป `lib/limraFills.ts` เพราะเป็นสีของ xlsx ไม่ใช่ของธีม
+  CSS ที่ ship ลดจาก 9.6 → **2.8 KB** (เหลือแต่ `report.css`)
+- `report.css` เลิกพึ่ง `var(--ui)` แล้ว + boundary test เพิ่มกฎ: ห้ามใช้ custom property
+  ที่ตัวเองไม่ได้ประกาศ (เดิมมันยืม `--ui` จาก styles.css อยู่ แปลว่าเปลี่ยนฟอนต์ของแอป
+  แล้วกระเด็นไปโดนกระดาษที่พิมพ์)
+- ErrorBoundary ครอบทั้งแอป บอกด้วยว่า "ข้อมูลยังอยู่ครบ" เพราะจอขาวในเครื่องมือที่เก็บ
+  ข้อมูลไว้ในเบราว์เซอร์ที่เดียว อ่านได้ว่าข้อมูลหายหมด
+- ล้างข้อมูลทั้งหมดต้องพิมพ์คำว่า `ล้างทั้งหมด` ก่อน · งานที่เสร็จแล้วแจ้งด้วย Snackbar
+  ส่วน error ยังค้างบนจอ เพราะยังเป็นเรื่องจริงอยู่
+- ขั้น Limra มี `LinearProgress` · หน้าแรกที่ยังไม่มีหน่วยมี empty state พร้อมบอกว่าให้ทำอะไร
 
 ## 4. ความเสี่ยง
 

@@ -1,6 +1,8 @@
 import { useRef } from 'react'
 import Alert from '@mui/material/Alert'
+import Box from '@mui/material/Box'
 import Chip from '@mui/material/Chip'
+import LinearProgress from '@mui/material/LinearProgress'
 import Stack from '@mui/material/Stack'
 import Table from '@mui/material/Table'
 import TableBody from '@mui/material/TableBody'
@@ -11,7 +13,8 @@ import TableRow from '@mui/material/TableRow'
 import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 import { setLimraField, setLimraUnitField, type LimraField } from '../db/repo'
-import { limraBand } from '../lib/compute'
+import { limraBand, type LimraBand } from '../lib/compute'
+import { limraFillSx } from '../lib/limraFills'
 import type { Agent, LimraEntry, LimraUnit } from '../lib/types'
 
 const FIELDS: LimraField[] = ['p12mPercent', 'p12mPremiumLost', 'ytdPercent', 'ytdPremiumLost']
@@ -84,7 +87,7 @@ export function LimraPane({ unitId, asOfDate, agents, limra, limraUnit }: Props)
           value={limraUnit?.limraAsOfLabel ?? ''}
           onChange={(e) => writeUnit({ limraAsOfLabel: e.target.value })}
         />
-        <div style={{ flex: 1 }} />
+        <Box sx={{ flex: 1 }} />
         <Chip
           size="small"
           color={filled === visible.length ? 'success' : 'warning'}
@@ -93,6 +96,14 @@ export function LimraPane({ unitId, asOfDate, agents, limra, limraUnit }: Props)
           }
         />
       </Stack>
+
+      {/* The count alone does not show how far in this is; the bar does. */}
+      <LinearProgress
+        variant="determinate"
+        color={filled === visible.length ? 'success' : 'primary'}
+        value={visible.length === 0 ? 0 : (filled / visible.length) * 100}
+        sx={{ height: 6, borderRadius: 3 }}
+      />
 
       <Alert severity="info" icon={false}>
         <b>Tab</b> ไปขวา · <b>Enter</b> ลงล่าง · วางทั้งบล็อกจาก Excel ได้ที่ช่องใดก็ได้ ·
@@ -127,8 +138,6 @@ export function LimraPane({ unitId, asOfDate, agents, limra, limraUnit }: Props)
                   {FIELDS.map((field, col) => (
                     <NumberCell
                       key={field}
-                      // The fills are the ones the source workbook paints, so
-                      // they stay in plain CSS alongside the report's own.
                       band={field.endsWith('Percent') ? limraBand(entry?.[field] ?? null) : null}
                       value={entry?.[field] ?? ''}
                       row={row}
@@ -168,7 +177,7 @@ function NumberCell({
   onPaste,
   onEnter,
 }: {
-  band: string | null
+  band: LimraBand
   value: number | string
   row?: number
   col?: number
@@ -177,7 +186,7 @@ function NumberCell({
   onEnter?: (back: boolean) => void
 }) {
   return (
-    <TableCell className={band ? `band-${band}` : undefined} sx={{ p: 0.25 }}>
+    <TableCell sx={{ p: 0.25, ...limraFillSx(band) }}>
       <TextField
         value={value}
         variant="standard"

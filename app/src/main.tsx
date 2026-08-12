@@ -9,7 +9,9 @@ import buddhistEra from 'dayjs/plugin/buddhistEra'
 import 'dayjs/locale/th'
 import { App } from './App'
 import { theme } from './theme'
-import './styles.css'
+import { ErrorBoundary } from './ui/ErrorBoundary'
+// The only stylesheet left. Everything else is themed by MUI; this one is the
+// replica, which follows the source workbook instead.
 import './report.css'
 
 // Dates are stored as ISO, in the Gregorian calendar the source files use, and
@@ -22,7 +24,9 @@ createRoot(document.getElementById('root')!).render(
     <ThemeProvider theme={theme} defaultMode="light" modeStorageKey="ams.theme">
       <CssBaseline />
       <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="th">
-        <App />
+        <ErrorBoundary>
+          <App />
+        </ErrorBoundary>
       </LocalizationProvider>
     </ThemeProvider>
   </StrictMode>,
