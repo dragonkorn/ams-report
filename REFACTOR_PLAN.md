@@ -76,8 +76,11 @@ pattern ที่มีและควรรักษาไว้:
 | `ui/ReviewPane.tsx` | toolbar ตรวจ + notice กริด + `<Report>` (ย้าย `showManual` / `imageScale` / `exporting` มาไว้ที่นี่) |
 | `ui/BrowserGate.tsx` | หน้ากั้นเบราว์เซอร์ |
 | `lib/download.ts` | `save()` + PNG + xlsx + backup |
+| `lib/stages.ts` + `ui/StageTabs.tsx` | นิยาม 4 ขั้น + แถบขั้น |
+| `ui/PersistenceNotice.tsx` | แถบเตือนสิทธิ์เก็บถาวร |
 
-- **ผ่านเมื่อ:** `App.tsx` < 120 บรรทัด · test เขียว · หน้าตาเหมือนเดิมเป๊ะ (ยังไม่แตะ CSS)
+- **ผ่านเมื่อ:** `App.tsx` < 150 บรรทัด · test เขียว · หน้าตาเหมือนเดิมเป๊ะ (ยังไม่แตะ CSS)
+- **ผลจริง:** 452 → **146** บรรทัด ที่เหลือเป็น wiring ล้วน (state 5 ตัว + ต่อสายเข้า pane) จะบางลงอีกที่ P3 ตอนย้าย stage/unit/round ไปอยู่ใน URL
 
 ### P2 · repository layer
 `refactor: ปิดทางเรียก Dexie ตรงจาก UI`
@@ -154,6 +157,7 @@ npm i @mui/material @emotion/react @emotion/styled @mui/icons-material \
 | ความเสี่ยง | กัน |
 |---|---|
 | MUI/emotion ทำ PNG export เพี้ยน | test P0 กัน import · เทียบ PNG ด้วยตาทุกเฟสที่แตะ theme |
+| **bundle Sarabun แล้ว PNG ไม่มีฟอนต์** — [`imageExport.ts`](app/src/lib/imageExport.ts) ตั้ง `skipFonts: true` เพราะตอนนี้ใช้ฟอนต์ในเครื่องล้วน พอ P4 bundle webfont เข้ามา รูปที่ export จะไม่ฝังฟอนต์ | ตอน P4 ต้องตัดสินพร้อมกัน: ให้ Sarabun ใช้เฉพาะ chrome (report ยังพึ่งฟอนต์เครื่อง `skipFonts` คงไว้) หรือปล่อย `skipFonts: false` แล้วยอมให้ export ช้าลง |
 | MD3 palette เขียนเองแล้ว contrast ตก | ตรวจ contrast ตอน P4 ก่อนเอาไปใช้ |
 | DatePicker พ.ศ. อ่านค่าผิดปี | `asOfDate` เก็บ ISO ค.ศ. เหมือนเดิม แปลงเฉพาะตอนแสดง · เพิ่ม test ของ adapter |
 | bundle โต (+95–120 KB gzip) | ยอมรับได้ — static site ผู้ใช้ 1 คน desktop |
