@@ -85,9 +85,12 @@ pattern ที่มีและควรรักษาไว้:
 ### P2 · repository layer
 `refactor: ปิดทางเรียก Dexie ตรงจาก UI`
 
-- `db/repo/{units,agents,snapshots,limra,seededGrids}.ts` — ทุกฟังก์ชันเขียนต้องผ่านที่นี่
-- ย้าย `updatedAt: new Date().toISOString()` ไปอยู่ใน repo ชั้นเดียว (แก้ปัญหา 7)
+- `db/repo/{units,agents,snapshots,limra,grids,import}.ts` — ทุกการอ่าน/เขียนต้องผ่านที่นี่
+- ย้าย `updatedAt: new Date().toISOString()` ไปอยู่ที่ `repo/stamp.ts` ที่เดียว (แก้ปัญหา 7)
 - **ผ่านเมื่อ:** `grep -rn "\bdb\." app/src/ui app/src/hooks` ว่างเปล่า · test เขียว
+- **ผลจริง:** transaction 2 ก้อนใน `ImportPane` (รวม 68 บรรทัด) ย้ายไป `repo/import.ts` เป็น
+  `saveRound()` / `applyWorkbook()` · `db/index.ts` เหลือแค่ schema กับ storage ของเบราว์เซอร์ ·
+  boundary test เพิ่มกฎ: ไฟล์ใน `ui/` `hooks/` `App.tsx` ห้ามมี `db.` หรือ import `dexie`
 
 ### P3 · routing + state machine
 `refactor: เก็บ stage/unit/round ไว้ใน URL`

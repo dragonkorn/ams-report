@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs'
+import { readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
@@ -71,6 +71,28 @@ const PINNED = [
   'limra-orange',
   'limra-red',
 ]
+
+/**
+ * Where the stored data is reached from.
+ *
+ * Components used to open transactions themselves, which put the store layout,
+ * the write order that keeps a round consistent, and the `updatedAt` stamping in
+ * the same files as the markup. Everything now goes through db/repo, and the
+ * only way that stays true is to check it.
+ */
+describe('the screens reach the database only through the repository', () => {
+  const files = ['ui', 'hooks', 'App.tsx'].flatMap((entry) =>
+    entry.endsWith('.tsx')
+      ? [join(SRC, entry)]
+      : readdirSync(join(SRC, entry)).map((f) => join(SRC, entry, f)),
+  )
+
+  it.each(files.map((f) => [f.slice(SRC.length + 1), f]))('%s opens no query of its own', (_, path) => {
+    const source = readFileSync(path, 'utf8')
+    expect(source).not.toMatch(/\bdb\.[a-z]/)
+    expect(source).not.toMatch(/from\s+'dexie'/)
+  })
+})
 
 describe('the replica stylesheet keeps every rule it paints with', () => {
   const css = readFileSync(join(SRC, 'report.css'), 'utf8')

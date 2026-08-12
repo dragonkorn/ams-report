@@ -1,6 +1,13 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { db, type SeededGrid } from '../db'
-import type { Agent, LimraEntry, LimraUnit, Snapshot, Unit } from '../lib/types'
+import {
+  listAgents,
+  listLimra,
+  listLimraUnits,
+  listSeededGrids,
+  listSnapshots,
+  listUnits,
+} from '../db/repo'
+import type { Agent, LimraEntry, LimraUnit, SeededGrid, Snapshot, Unit } from '../lib/types'
 
 /** Everything stored for one unit, kept live as the database changes. */
 export interface UnitData {
@@ -21,32 +28,12 @@ export interface UnitData {
  * back to the newest entry at or before the round on screen.
  */
 export function useUnitData(unitId: string | null): UnitData {
-  const units = useLiveQuery(() => db.units.toArray(), [], [])
-  const agents = useLiveQuery(
-    () => (unitId ? db.agents.where('unitId').equals(unitId).toArray() : []),
-    [unitId],
-    [],
-  )
-  const snapshots = useLiveQuery(
-    () => (unitId ? db.snapshots.where('unitId').equals(unitId).toArray() : []),
-    [unitId],
-    [],
-  )
-  const limraRows = useLiveQuery(
-    () => (unitId ? db.limra.where('unitId').equals(unitId).toArray() : []),
-    [unitId],
-    [],
-  )
-  const limraUnits = useLiveQuery(
-    () => (unitId ? db.limraUnits.where('unitId').equals(unitId).toArray() : []),
-    [unitId],
-    [],
-  )
-  const seeded = useLiveQuery(
-    () => (unitId ? db.seededGrids.where('unitId').equals(unitId).toArray() : []),
-    [unitId],
-    [],
-  )
+  const units = useLiveQuery(listUnits, [], [])
+  const agents = useLiveQuery(() => (unitId ? listAgents(unitId) : []), [unitId], [])
+  const snapshots = useLiveQuery(() => (unitId ? listSnapshots(unitId) : []), [unitId], [])
+  const limraRows = useLiveQuery(() => (unitId ? listLimra(unitId) : []), [unitId], [])
+  const limraUnits = useLiveQuery(() => (unitId ? listLimraUnits(unitId) : []), [unitId], [])
+  const seeded = useLiveQuery(() => (unitId ? listSeededGrids(unitId) : []), [unitId], [])
 
   return { units, agents, snapshots, limraRows, limraUnits, seeded }
 }

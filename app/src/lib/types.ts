@@ -172,6 +172,20 @@ export interface LimraUnit {
   ytdPremiumLost: number | null
 }
 
+/**
+ * Twelve months of approved cases lifted out of an old workbook.
+ *
+ * The CSVs only ever describe today, so months that passed before this tool was
+ * used cannot be derived from them — they are read once from the workbook the
+ * user was keeping by hand and stored as-is.
+ */
+export interface SeededGrid {
+  unitId: string
+  code: string
+  year: number
+  months: (number | null)[]
+}
+
 /** Per-unit report chrome the source workbooks spell inconsistently. */
 export interface Unit {
   unitId: string

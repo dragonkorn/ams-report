@@ -1,4 +1,5 @@
-import { deleteRound, type StorageHealth } from '../db'
+import type { StorageHealth } from '../db'
+import { deleteRound } from '../db/repo'
 import { downloadBackup } from '../lib/download'
 import type { Unit } from '../lib/types'
 

@@ -2,9 +2,8 @@ import { useEffect, useState } from 'react'
 import { classifyFeeds, decodeThaiCsv, parseFeed, swapFycScopes, vpNumberFrom } from '../lib/csv'
 import { buildSnapshot, fingerprintOf, namesFrom } from '../lib/snapshot'
 import { importWorkbook } from '../lib/xlsxImport'
-import { suggestMoc } from '../lib/compute'
-import { shortNameFrom, thaiDateLabel } from '../lib/format'
-import { db } from '../db'
+import { thaiDateLabel } from '../lib/format'
+import { applyWorkbook, findRoundWithSameFigures, saveRound } from '../db/repo'
 import type { Feed, FeedSet } from '../lib/types'
 import { FYC_COLUMNS } from '../lib/types'
 import { Dropzone } from './Dropzone'
@@ -46,15 +45,9 @@ export function ImportPane({
     let cancelled = false
     const unitId = unitIdFor(set)
     const fingerprint = fingerprintOf(buildSnapshot(set, unitId, asOfDate))
-    void db.snapshots
-      .where('unitId')
-      .equals(unitId)
-      .toArray()
-      .then((rounds) => {
-        if (cancelled) return
-        const match = rounds.find((r) => fingerprintOf(r) === fingerprint)
-        setDuplicateRound(match?.asOfDate ?? null)
-      })
+    void findRoundWithSameFigures(unitId, fingerprint).then((match) => {
+      if (!cancelled) setDuplicateRound(match)
+    })
     return () => {
       cancelled = true
     }
@@ -81,47 +74,13 @@ export function ImportPane({
     setError(null)
     try {
       const unitId = unitIdFor(set)
-      const snapshot = buildSnapshot(set, unitId, asOfDate)
-      const names = namesFrom(set)
-      const now = new Date().toISOString()
-
-      await db.transaction('rw', db.units, db.agents, db.snapshots, async () => {
-        const existingUnit = await db.units.get(unitId)
-        await db.units.put({
-          unitId,
-          agencyCode: set.unitCode,
-          heading: existingUnit?.heading ?? headingFrom(set.unitLabel),
-          dateLabel: thaiDateLabel(asOfDate),
-          rallyLines: existingUnit?.rallyLines ?? [],
-          updatedAt: now,
-        })
-
-        // Known agents keep their settings; unseen codes arrive as ended so they
-        // stay off the report until someone says otherwise.
-        for (const code of Object.keys(snapshot.rows)) {
-          const existing = await db.agents.get([unitId, code])
-          const name = names[code] ?? ''
-          if (existing) {
-            // Refresh the spelling the feed uses without touching anything typed.
-            if (existing.nameFromFeed !== name) {
-              await db.agents.put({ ...existing, nameFromFeed: name, updatedAt: now })
-            }
-            continue
-          }
-          await db.agents.put({
-            unitId,
-            code,
-            nameFromFeed: name,
-            shortName: shortNameFrom(code, name),
-            issueDate: '',
-            moc: suggestMoc('') ?? '',
-            mocConfirmed: false,
-            status: 'ended',
-            note: '',
-            updatedAt: now,
-          })
-        }
-        await db.snapshots.put(snapshot)
+      await saveRound({
+        unitId,
+        agencyCode: set.unitCode,
+        heading: headingFrom(set.unitLabel),
+        dateLabel: thaiDateLabel(asOfDate),
+        snapshot: buildSnapshot(set, unitId, asOfDate),
+        names: namesFrom(set),
       })
       onSaved(unitId)
     } catch (e) {
@@ -148,45 +107,10 @@ export function ImportPane({
         )
       }
 
-      // The workbook keeps its own date: it may be an older round entirely.
-      const year = new Date(imported.asOfDate).getFullYear()
-      const now = new Date().toISOString()
-
-      await db.transaction(
-        'rw',
-        db.units,
-        db.agents,
-        db.limra,
-        db.limraUnits,
-        db.seededGrids,
-        async () => {
-          const existingUnit = await db.units.get(unitId)
-          await db.units.put({
-            unitId,
-            agencyCode: existingUnit?.agencyCode ?? set.unitCode,
-            heading: imported.heading || existingUnit?.heading || '',
-            // The heading belongs to the workbook's own round, so the current
-            // round keeps whatever date it was saved with.
-            dateLabel: existingUnit?.dateLabel || thaiDateLabel(asOfDate),
-            rallyLines: imported.rallyLines,
-            updatedAt: now,
-          })
-          for (const agent of imported.agents) {
-            const existing = await db.agents.get([unitId, agent.code])
-            await db.agents.put({ ...agent, nameFromFeed: existing?.nameFromFeed ?? '' })
-          }
-          await db.limra.bulkPut(imported.limra)
-          if (imported.limraUnit) await db.limraUnits.put(imported.limraUnit)
-          await db.seededGrids.bulkPut(
-            Object.entries(imported.grids).map(([code, months]) => ({
-              unitId,
-              code,
-              year,
-              months,
-            })),
-          )
-        },
-      )
+      await applyWorkbook(unitId, imported, {
+        agencyCode: set.unitCode,
+        dateLabel: thaiDateLabel(asOfDate),
+      })
       setWorkbookNote(
         `ไฟล์ลงวันที่ ${imported.dateLabel || imported.asOfDate} — นำเข้าแล้ว ${imported.agents.length} คน · กริดย้อนหลัง ${Object.keys(imported.grids).length} แถว · Limra ${imported.limra.length} แถว`,
       )

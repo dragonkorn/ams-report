@@ -1,11 +1,9 @@
 import { useRef } from 'react'
-import { db } from '../db'
+import { setLimraField, setLimraUnitField, type LimraField } from '../db/repo'
 import { limraBand } from '../lib/compute'
 import type { Agent, LimraEntry, LimraUnit } from '../lib/types'
 
-type Field = 'p12mPercent' | 'p12mPremiumLost' | 'ytdPercent' | 'ytdPremiumLost'
-
-const FIELDS: Field[] = ['p12mPercent', 'p12mPremiumLost', 'ytdPercent', 'ytdPremiumLost']
+const FIELDS: LimraField[] = ['p12mPercent', 'p12mPremiumLost', 'ytdPercent', 'ytdPremiumLost']
 
 interface Props {
   unitId: string
@@ -29,32 +27,12 @@ export function LimraPane({ unitId, asOfDate, agents, limra, limraUnit }: Props)
 
   const filled = visible.filter((a) => limra[a.code]?.p12mPercent != null).length
 
-  async function write(code: string, field: Field, value: number | null) {
-    const existing = limra[code]
-    await db.limra.put({
-      unitId,
-      asOfDate,
-      code,
-      p12mPercent: existing?.p12mPercent ?? null,
-      p12mPremiumLost: existing?.p12mPremiumLost ?? null,
-      ytdPercent: existing?.ytdPercent ?? null,
-      ytdPremiumLost: existing?.ytdPremiumLost ?? null,
-      [field]: value,
-      updatedAt: new Date().toISOString(),
-    })
+  function write(code: string, field: LimraField, value: number | null) {
+    return setLimraField(unitId, asOfDate, code, limra[code], field, value)
   }
 
-  async function writeUnit(field: Field, value: number | null) {
-    await db.limraUnits.put({
-      unitId,
-      asOfDate,
-      limraAsOfLabel: limraUnit?.limraAsOfLabel ?? '',
-      p12mPercent: limraUnit?.p12mPercent ?? null,
-      p12mPremiumLost: limraUnit?.p12mPremiumLost ?? null,
-      ytdPercent: limraUnit?.ytdPercent ?? null,
-      ytdPremiumLost: limraUnit?.ytdPremiumLost ?? null,
-      [field]: value,
-    })
+  function writeUnit(changes: Partial<Pick<LimraUnit, LimraField | 'limraAsOfLabel'>>) {
+    return setLimraUnitField(unitId, asOfDate, limraUnit, changes)
   }
 
   /** Paste a rectangular block starting at the focused cell. */
@@ -95,17 +73,7 @@ export function LimraPane({ unitId, asOfDate, agents, limra, limraUnit }: Props)
             style={{ width: 160, border: '1px solid var(--line)' }}
             placeholder="30 มิ.ย.2569"
             value={limraUnit?.limraAsOfLabel ?? ''}
-            onChange={(e) =>
-              db.limraUnits.put({
-                unitId,
-                asOfDate,
-                p12mPercent: limraUnit?.p12mPercent ?? null,
-                p12mPremiumLost: limraUnit?.p12mPremiumLost ?? null,
-                ytdPercent: limraUnit?.ytdPercent ?? null,
-                ytdPremiumLost: limraUnit?.ytdPremiumLost ?? null,
-                limraAsOfLabel: e.target.value,
-              })
-            }
+            onChange={(e) => writeUnit({ limraAsOfLabel: e.target.value })}
           />
         </label>
         <span className="spacer" />
@@ -180,7 +148,7 @@ export function LimraPane({ unitId, asOfDate, agents, limra, limraUnit }: Props)
                   <td key={field} className={band ? `band-${band}` : undefined}>
                     <input
                       value={limraUnit?.[field] ?? ''}
-                      onChange={(e) => writeUnit(field, toNumber(e.target.value))}
+                      onChange={(e) => writeUnit({ [field]: toNumber(e.target.value) })}
                     />
                   </td>
                 )

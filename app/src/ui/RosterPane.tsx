@@ -1,4 +1,4 @@
-import { db } from '../db'
+import { patchAgent } from '../db/repo'
 import { MOC_NEW, MOC_OLD, suggestMoc } from '../lib/compute'
 import type { Agent, RosterStatus } from '../lib/types'
 
@@ -12,10 +12,6 @@ export function RosterPane({ agents }: { agents: Agent[] }) {
   const shown = agents.filter((a) => a.status !== 'ended').length
   const hidden = agents.length - shown
   const unconfirmed = agents.filter((a) => a.status !== 'ended' && !a.mocConfirmed)
-
-  async function patch(agent: Agent, changes: Partial<Agent>) {
-    await db.agents.put({ ...agent, ...changes, updatedAt: new Date().toISOString() })
-  }
 
   return (
     <>
@@ -56,7 +52,7 @@ export function RosterPane({ agents }: { agents: Agent[] }) {
                     <input
                       className="cell-input"
                       value={agent.shortName}
-                      onChange={(e) => patch(agent, { shortName: e.target.value })}
+                      onChange={(e) => patchAgent(agent, { shortName: e.target.value })}
                     />
                   </td>
                   <td className="m" style={{ fontSize: 11.5 }}>
@@ -72,7 +68,7 @@ export function RosterPane({ agents }: { agents: Agent[] }) {
                         const moc = agent.mocConfirmed
                           ? agent.moc
                           : (suggestMoc(issueDate) ?? agent.moc)
-                        patch(agent, { issueDate, moc })
+                        patchAgent(agent, { issueDate, moc })
                       }}
                     />
                   </td>
@@ -80,7 +76,7 @@ export function RosterPane({ agents }: { agents: Agent[] }) {
                     <select
                       className="cell-input"
                       value={agent.moc}
-                      onChange={(e) => patch(agent, { moc: e.target.value, mocConfirmed: true })}
+                      onChange={(e) => patchAgent(agent, { moc: e.target.value, mocConfirmed: true })}
                     >
                       <option value="">—</option>
                       <option value={MOC_OLD}>{MOC_OLD}</option>
@@ -96,7 +92,7 @@ export function RosterPane({ agents }: { agents: Agent[] }) {
                     <select
                       className="cell-input"
                       value={agent.status}
-                      onChange={(e) => patch(agent, { status: e.target.value as RosterStatus })}
+                      onChange={(e) => patchAgent(agent, { status: e.target.value as RosterStatus })}
                     >
                       {(Object.keys(STATUS_LABELS) as RosterStatus[]).map((s) => (
                         <option key={s} value={s}>
@@ -109,7 +105,7 @@ export function RosterPane({ agents }: { agents: Agent[] }) {
                     <input
                       className="cell-input"
                       value={agent.note}
-                      onChange={(e) => patch(agent, { note: e.target.value })}
+                      onChange={(e) => patchAgent(agent, { note: e.target.value })}
                     />
                   </td>
                 </tr>

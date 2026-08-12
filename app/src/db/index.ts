@@ -1,16 +1,18 @@
 import Dexie, { type EntityTable } from 'dexie'
-import type { Agent, LimraEntry, LimraUnit, Snapshot, Unit } from '../lib/types'
-
-/** Seeded month grids imported from an old workbook, used where CSVs cannot reach. */
-export interface SeededGrid {
-  unitId: string
-  code: string
-  year: number
-  months: (number | null)[]
-}
+import type {
+  Agent,
+  LimraEntry,
+  LimraUnit,
+  SeededGrid,
+  Snapshot,
+  Unit,
+} from '../lib/types'
 
 /**
  * Everything lives here and nowhere else — no server, no files on disk.
+ *
+ * This module owns the schema and the storage the browser gives us. Reads and
+ * writes of the data itself belong to `db/repo`, which is what the app imports.
  *
  * The stores are split by how long their contents stay true. `agents` is tied to
  * a person and survives every import; `snapshots` accumulate one per round and
@@ -100,21 +102,6 @@ export async function exportEverything(): Promise<Blob> {
     seededGrids,
   }
   return new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
-}
-
-/**
- * Remove one saved round and everything typed against it.
- *
- * Rounds are the only thing here that cannot be re-downloaded, so deletion is
- * deliberate: it exists because saving the same export under two dates makes the
- * activity grid contradict itself, and the fix is to drop the wrong one.
- */
-export async function deleteRound(unitId: string, asOfDate: string): Promise<void> {
-  await db.transaction('rw', db.snapshots, db.limra, db.limraUnits, async () => {
-    await db.snapshots.where('[unitId+asOfDate]').equals([unitId, asOfDate]).delete()
-    await db.limraUnits.where('[unitId+asOfDate]').equals([unitId, asOfDate]).delete()
-    await db.limra.where('[unitId+asOfDate]').equals([unitId, asOfDate]).delete()
-  })
 }
 
 /** Wipe every store. Destructive and irreversible — always confirm first. */
