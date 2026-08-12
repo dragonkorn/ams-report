@@ -37,6 +37,9 @@ function Workspace() {
   const [unitId, setUnitId] = useState<string | null>(null)
   const [stage, setStage] = useState<Stage>('import')
   const [asOfDate, setAsOfDate] = useState(() => new Date().toISOString().slice(0, 10))
+  // Which saved round the report shows. null follows the newest one, so a fresh
+  // import is what you see without having to pick it.
+  const [roundDate, setRoundDate] = useState<string | null>(null)
   const [showManual, setShowManual] = useState(true)
   const [health, setHealth] = useState({ persisted: false, usageBytes: 0, snapshotCount: 0 })
   // Held here rather than in the pane so leaving the import stage does not
@@ -87,8 +90,22 @@ function Workspace() {
   const current = useMemo(() => {
     if (!unitId) return null
     const sorted = [...snapshots].sort((a, b) => b.asOfDate.localeCompare(a.asOfDate))
-    return sorted[0] ?? null
-  }, [snapshots, unitId])
+    // A picked round that no longer exists (deleted, or belonging to the unit we
+    // just left) falls back to the newest rather than emptying the screen.
+    return sorted.find((s) => s.asOfDate === roundDate) ?? sorted[0] ?? null
+  }, [snapshots, unitId, roundDate])
+
+  /**
+   * Rounds saved after the one on screen are held back.
+   *
+   * The activity grid is built by walking every snapshot handed to it, so an
+   * unfiltered history would fill in months that had not happened yet when this
+   * round was sent, and the replay would not match what went out.
+   */
+  const history = useMemo(
+    () => (current ? snapshots.filter((s) => s.asOfDate <= current.asOfDate) : []),
+    [snapshots, current],
+  )
 
   // Limra is typed per round, but a workbook imported from an older round still
   // carries usable figures, so each agent falls back to the most recent entry at
@@ -133,7 +150,7 @@ function Workspace() {
 
     return buildReport({
       snapshot: current,
-      history: snapshots,
+      history,
       agents,
       limra: limraForRound,
       limraUnit,
@@ -143,7 +160,7 @@ function Workspace() {
       monthLabel: thaiMonthShort(current.asOfDate),
       rallyLines: unit.rallyLines,
     })
-  }, [current, unit, snapshots, agents, limraForRound, limraUnit, seeded])
+  }, [current, unit, history, agents, limraForRound, limraUnit, seeded])
 
   return (
     <div className="shell">
@@ -158,7 +175,10 @@ function Workspace() {
           <button
             key={u.unitId}
             className={`unit-btn${u.unitId === unitId ? ' on' : ''}`}
-            onClick={() => setUnitId(u.unitId)}
+            onClick={() => {
+              setUnitId(u.unitId)
+              setRoundDate(null)
+            }}
           >
             <span className={`pip ${u.unitId === unitId ? 'ok' : ''}`} />
             <span className="nm">{u.unitId}</span>
@@ -171,14 +191,24 @@ function Workspace() {
               รอบที่เก็บไว้
             </span>
             {savedRounds.map((date) => (
-              <div key={date} className="round-row">
-                <span>{date}</span>
+              <div
+                key={date}
+                className={`round-row${current?.asOfDate === date ? ' on' : ''}`}
+              >
+                <button
+                  className="round-pick"
+                  title="แสดง report ของรอบนี้"
+                  onClick={() => setRoundDate(date)}
+                >
+                  {date}
+                </button>
                 <button
                   className="link-btn"
                   title="ลบรอบนี้"
                   onClick={async () => {
                     if (!confirm(`ลบรอบ ${date} ของ ${unitId} — แน่ใจไหม`)) return
                     await deleteRound(unitId, date)
+                    if (roundDate === date) setRoundDate(null)
                   }}
                 >
                   ลบ
@@ -204,6 +234,7 @@ function Workspace() {
               if (!confirm('ลบข้อมูลทุกหน่วยทิ้งทั้งหมด กู้คืนไม่ได้ — แน่ใจไหม')) return
               await clearEverything()
               setUnitId(null)
+              setRoundDate(null)
               setFeedSet(null)
               setStage('import')
             }}
@@ -252,7 +283,10 @@ function Workspace() {
             set={feedSet}
             onSetChange={setFeedSet}
             roundSaved={roundSaved}
-            onSaved={setUnitId}
+            onSaved={(id) => {
+              setUnitId(id)
+              setRoundDate(null)
+            }}
             savedRounds={savedRounds}
           />
         ) : null}
@@ -273,6 +307,12 @@ function Workspace() {
           <>
             <div className="pane-top">
               <h1>ตรวจก่อนส่งออก</h1>
+              <span className="round-tag" title="รอบที่กำลังแสดง">
+                รอบ {current!.asOfDate}
+                {savedRounds.length > 1 && current!.asOfDate !== savedRounds[savedRounds.length - 1]
+                  ? ' · ย้อนหลัง'
+                  : ''}
+              </span>
               <span className="spacer" />
               <button className="btn quiet" onClick={() => setShowManual((v) => !v)}>
                 {showManual ? 'ซ่อน' : 'แสดง'}ช่องที่พิมพ์มือ
