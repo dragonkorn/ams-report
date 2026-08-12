@@ -6,6 +6,11 @@
  * it is requested by name and only falls back to a bundled face when the machine
  * doing the exporting does not have it. Since the deliverable is a PDF printed
  * on that same machine, naming the local font gives an exact match for free.
+ *
+ * This file and Report.tsx stay outside whatever design system the rest of the
+ * app uses: the picture that goes out has to match the workbook, not the app.
+ * test/boundary.test.ts holds that line. The report keeps a white background in
+ * every theme for the same reason.
  */
 .report {
   /* Shrink-to-fit on the roster table so the blocks below can match its width
