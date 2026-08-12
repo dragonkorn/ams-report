@@ -1,4 +1,17 @@
 import { useRef, useState } from 'react'
+import Alert from '@mui/material/Alert'
+import AlertTitle from '@mui/material/AlertTitle'
+import Box from '@mui/material/Box'
+import Button from '@mui/material/Button'
+import Chip from '@mui/material/Chip'
+import MenuItem from '@mui/material/MenuItem'
+import Stack from '@mui/material/Stack'
+import TextField from '@mui/material/TextField'
+import Typography from '@mui/material/Typography'
+import ImageIcon from '@mui/icons-material/ImageOutlined'
+import TableChartIcon from '@mui/icons-material/TableChartOutlined'
+import VisibilityIcon from '@mui/icons-material/VisibilityOutlined'
+import VisibilityOffIcon from '@mui/icons-material/VisibilityOffOutlined'
 import type { ReportModel } from '../lib/compute'
 import { downloadImage, downloadWorkbook } from '../lib/download'
 import { IMAGE_SCALES, estimateWidth, type ImageScale } from '../lib/imageExport'
@@ -29,37 +42,38 @@ export function ReviewPane({ model, unitId, asOfDate, savedRounds }: Props) {
 
   return (
     <>
-      <div className="pane-top">
-        <h1>ตรวจก่อนส่งออก</h1>
-        <span className="round-tag" title="รอบที่กำลังแสดง">
-          รอบ {asOfDate}
-          {savedRounds.length > 1 && !isLatest ? ' · ย้อนหลัง' : ''}
-        </span>
-        <span className="spacer" />
-        <button className="btn quiet" onClick={() => setShowManual((v) => !v)}>
+      <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
+        <Typography variant="h1">ตรวจก่อนส่งออก</Typography>
+        <Chip
+          size="small"
+          color={isLatest ? 'default' : 'warning'}
+          label={`รอบ ${asOfDate}${savedRounds.length > 1 && !isLatest ? ' · ย้อนหลัง' : ''}`}
+        />
+        <Box sx={{ flex: 1 }} />
+        <Button
+          startIcon={showManual ? <VisibilityOffIcon /> : <VisibilityIcon />}
+          onClick={() => setShowManual((v) => !v)}
+        >
           {showManual ? 'ซ่อน' : 'แสดง'}ช่องที่พิมพ์มือ
-        </button>
-        <label style={{ fontSize: 12.5, color: 'var(--ink-2)' }}>
-          ความละเอียดรูป{' '}
-          <select
-            className="cell-input"
-            style={{ width: 68, border: '1px solid var(--line)' }}
-            value={imageScale}
-            onChange={(e) => setImageScale(Number(e.target.value) as ImageScale)}
-          >
-            {IMAGE_SCALES.map((s) => (
-              <option key={s} value={s}>
-                {s}×
-              </option>
-            ))}
-          </select>{' '}
-          <span style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--ink-3)' }}>
-            ~{estimateWidth(reportNode.current, imageScale).toLocaleString('en-US')} px
-          </span>
-        </label>
-        <button
-          className="btn ghost"
-          disabled={exporting}
+        </Button>
+        <TextField
+          select
+          label="ความละเอียด"
+          sx={{ width: 150 }}
+          value={imageScale}
+          onChange={(e) => setImageScale(Number(e.target.value) as ImageScale)}
+          helperText={`~${estimateWidth(reportNode.current, imageScale).toLocaleString('en-US')} px`}
+        >
+          {IMAGE_SCALES.map((s) => (
+            <MenuItem key={s} value={s}>
+              {s}×
+            </MenuItem>
+          ))}
+        </TextField>
+        <Button
+          variant="outlined"
+          startIcon={<ImageIcon />}
+          loading={exporting}
           onClick={async () => {
             if (!reportNode.current) return
             setExporting(true)
@@ -70,31 +84,32 @@ export function ReviewPane({ model, unitId, asOfDate, savedRounds }: Props) {
             }
           }}
         >
-          {exporting ? 'กำลังเรนเดอร์…' : 'บันทึกรูป PNG'}
-        </button>
-        <button className="btn ghost" onClick={() => downloadWorkbook(model, unitId, asOfDate)}>
+          บันทึกรูป PNG
+        </Button>
+        <Button
+          variant="outlined"
+          startIcon={<TableChartIcon />}
+          onClick={() => downloadWorkbook(model, unitId, asOfDate)}
+        >
           ส่งออก xlsx
-        </button>
-      </div>
+        </Button>
+      </Stack>
 
       {model.gridMismatches.length > 0 ? (
-        <div className="notice bad">
-          <span className="ic">!</span>
-          <div>
-            <b>ผลรวมกริดไม่เท่างานอนุมัติสะสมปี {model.gridMismatches.length} คน</b> — แปลว่า
-            snapshot ขาดเดือน · รหัส {model.gridMismatches.join(', ')}
-          </div>
-        </div>
+        <Alert severity="error">
+          <AlertTitle>
+            ผลรวมกริดไม่เท่างานอนุมัติสะสมปี {model.gridMismatches.length} คน
+          </AlertTitle>
+          แปลว่า snapshot ขาดเดือน · รหัส {model.gridMismatches.join(', ')}
+        </Alert>
       ) : (
-        <div className="notice">
-          <span className="ic">✓</span>
-          <div>ผลรวมกริด Active เท่างานอนุมัติสะสมปี ครบทุกคน</div>
-        </div>
+        <Alert severity="success">ผลรวมกริด Active เท่างานอนุมัติสะสมปี ครบทุกคน</Alert>
       )}
 
-      <div className="scroll">
+      {/* Plain CSS from here down: the report is a replica of a printed sheet. */}
+      <Box sx={{ overflowX: 'auto' }}>
         <Report model={model} showManual={showManual} nodeRef={reportNode} />
-      </div>
+      </Box>
     </>
   )
 }

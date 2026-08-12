@@ -1,10 +1,14 @@
 import { useEffect, useState } from 'react'
+import Alert from '@mui/material/Alert'
+import Box from '@mui/material/Box'
+import Stack from '@mui/material/Stack'
 import { browserIsSupported, clearEverything } from './db'
 import { useReportModel } from './hooks/useReportModel'
 import { useRoute } from './hooks/useRoute'
 import { useStorageHealth } from './hooks/useStorageHealth'
 import { useUnitData } from './hooks/useUnitData'
 import { BrowserGate } from './ui/BrowserGate'
+import { ConfirmDialog } from './ui/ConfirmDialog'
 import { ImportPane, unitIdFor } from './ui/ImportPane'
 import { LimraPane } from './ui/LimraPane'
 import { PersistenceNotice } from './ui/PersistenceNotice'
@@ -27,6 +31,7 @@ function Workspace() {
   // Held here rather than in the pane so leaving the import stage does not
   // discard a drop the user would otherwise have to repeat.
   const [feedSet, setFeedSet] = useState<FeedSet | null>(null)
+  const [clearing, setClearing] = useState(false)
 
   const data = useUnitData(unitId)
   const unit = data.units.find((u) => u.unitId === unitId) ?? null
@@ -64,7 +69,7 @@ function Workspace() {
   const blockedReason = forwardBlockedBy(stage, stageState)
 
   return (
-    <div className="shell">
+    <Box sx={{ display: 'flex', minHeight: '100vh' }}>
       <UnitRail
         units={data.units}
         unitId={unitId}
@@ -76,15 +81,10 @@ function Workspace() {
           if (roundDate === date) go({ round: null }, true)
         }}
         health={health}
-        onClearAll={async () => {
-          if (!confirm('ลบข้อมูลทุกหน่วยทิ้งทั้งหมด กู้คืนไม่ได้ — แน่ใจไหม')) return
-          await clearEverything()
-          setFeedSet(null)
-          go({ unit: null, round: null, stage: 'import' }, true)
-        }}
+        onClearAll={() => setClearing(true)}
       />
 
-      <main className="pane">
+      <Stack component="main" spacing={2} sx={{ flex: 1, minWidth: 0, px: 3, pt: 2.5, pb: 5 }}>
         <StageTabs stage={stage} onPick={(next) => go({ stage: next })} state={stageState} />
 
         {!health.persisted ? <PersistenceNotice onRetry={request} /> : null}
@@ -123,24 +123,35 @@ function Workspace() {
         ) : null}
 
         {stage === 'review' && !model ? (
-          <div className="notice">
-            <span className="ic">i</span>
-            <div>ยังไม่มีข้อมูลของหน่วยนี้ — ไปที่ขั้นนำเข้าก่อน</div>
-          </div>
+          <Alert severity="info">ยังไม่มีข้อมูลของหน่วยนี้ — ไปที่ขั้นนำเข้าก่อน</Alert>
         ) : null}
 
         <StageNav
           backLabel={stageIndex === 0 ? null : STAGES[stageIndex - 1].label}
           onBack={() => go({ stage: STAGES[stageIndex - 1].id })}
           nextLabel={stage === 'review' ? 'ส่งออก PDF' : STAGES[stageIndex + 1].label}
-          nextEnabled={blockedReason == null}
           blockedReason={blockedReason}
           onNext={() => {
             if (stage === 'review') window.print()
             else go({ stage: STAGES[stageIndex + 1].id })
           }}
         />
-      </main>
-    </div>
+      </Stack>
+
+      <ConfirmDialog
+        open={clearing}
+        title="ล้างข้อมูลทั้งหมด"
+        body="ทุกหน่วย ทุกรอบ และทุกอย่างที่พิมพ์มือจะหายถาวร ประวัติ snapshot สร้างใหม่ไม่ได้ เพราะระบบ AIA ให้โหลดแต่ข้อมูลปัจจุบัน"
+        confirmLabel="ล้างทั้งหมด"
+        destructive
+        onCancel={() => setClearing(false)}
+        onConfirm={async () => {
+          setClearing(false)
+          await clearEverything()
+          setFeedSet(null)
+          go({ unit: null, round: null, stage: 'import' }, true)
+        }}
+      />
+    </Box>
   )
 }

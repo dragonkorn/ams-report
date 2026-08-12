@@ -1,4 +1,15 @@
 import { useRef } from 'react'
+import Alert from '@mui/material/Alert'
+import Chip from '@mui/material/Chip'
+import Stack from '@mui/material/Stack'
+import Table from '@mui/material/Table'
+import TableBody from '@mui/material/TableBody'
+import TableCell from '@mui/material/TableCell'
+import TableContainer from '@mui/material/TableContainer'
+import TableHead from '@mui/material/TableHead'
+import TableRow from '@mui/material/TableRow'
+import TextField from '@mui/material/TextField'
+import Typography from '@mui/material/Typography'
 import { setLimraField, setLimraUnitField, type LimraField } from '../db/repo'
 import { limraBand } from '../lib/compute'
 import type { Agent, LimraEntry, LimraUnit } from '../lib/types'
@@ -64,100 +75,132 @@ export function LimraPane({ unitId, asOfDate, agents, limra, limraUnit }: Props)
 
   return (
     <>
-      <div className="pane-top">
-        <h1>Limra</h1>
-        <label style={{ fontSize: 13, color: 'var(--ink-2)' }}>
-          Limra ณ{' '}
-          <input
-            className="cell-input"
-            style={{ width: 160, border: '1px solid var(--line)' }}
-            placeholder="30 มิ.ย.2569"
-            value={limraUnit?.limraAsOfLabel ?? ''}
-            onChange={(e) => writeUnit({ limraAsOfLabel: e.target.value })}
-          />
-        </label>
-        <span className="spacer" />
-        <span className={filled === visible.length ? 'tag ok' : 'tag warn'}>
-          {filled === visible.length ? 'ครบแล้ว' : `เหลือ ${visible.length - filled} คน`}
-        </span>
-      </div>
+      <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
+        <Typography variant="h1">Limra</Typography>
+        <TextField
+          label="Limra ณ"
+          placeholder="30 มิ.ย.2569"
+          sx={{ width: 190 }}
+          value={limraUnit?.limraAsOfLabel ?? ''}
+          onChange={(e) => writeUnit({ limraAsOfLabel: e.target.value })}
+        />
+        <div style={{ flex: 1 }} />
+        <Chip
+          size="small"
+          color={filled === visible.length ? 'success' : 'warning'}
+          label={
+            filled === visible.length ? 'ครบแล้ว' : `เหลือ ${visible.length - filled} คน`
+          }
+        />
+      </Stack>
 
-      <div className="notice">
-        <span className="ic">⌘</span>
-        <div>
-          <b>Tab</b> ไปขวา · <b>Enter</b> ลงล่าง · วางทั้งบล็อกจาก Excel ได้ที่ช่องใดก็ได้ ·
-          สีขึ้นเองตามเกณฑ์ 100 / 90 / 80
-        </div>
-      </div>
+      <Alert severity="info" icon={false}>
+        <b>Tab</b> ไปขวา · <b>Enter</b> ลงล่าง · วางทั้งบล็อกจาก Excel ได้ที่ช่องใดก็ได้ ·
+        สีขึ้นเองตามเกณฑ์ 100 / 90 / 80
+      </Alert>
 
-      <div className="scroll">
-        <table className="limra">
-          <thead>
-            <tr>
-              <th rowSpan={2} style={{ textAlign: 'left' }}>
-                รหัส : ชื่อย่อ
-              </th>
-              <th colSpan={2}>P12M</th>
-              <th colSpan={2}>YTD</th>
-            </tr>
-            <tr>
-              <th>%</th>
-              <th>เบี้ยหายไป</th>
-              <th>%</th>
-              <th>เบี้ยหายไป</th>
-            </tr>
-          </thead>
-          <tbody ref={grid}>
+      <TableContainer>
+        <Table sx={{ width: 'auto' }}>
+          <TableHead>
+            <TableRow>
+              <TableCell rowSpan={2}>รหัส : ชื่อย่อ</TableCell>
+              <TableCell colSpan={2} align="center">
+                P12M
+              </TableCell>
+              <TableCell colSpan={2} align="center">
+                YTD
+              </TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell align="right">%</TableCell>
+              <TableCell align="right">เบี้ยหายไป</TableCell>
+              <TableCell align="right">%</TableCell>
+              <TableCell align="right">เบี้ยหายไป</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody ref={grid}>
             {visible.map((agent, row) => {
               const entry = limra[agent.code]
               return (
-                <tr key={agent.code}>
-                  <td className="name">{agent.shortName}</td>
-                  {FIELDS.map((field, col) => {
-                    const isPercent = field.endsWith('Percent')
-                    const band = isPercent ? limraBand(entry?.[field] ?? null) : null
-                    return (
-                      <td key={field} className={band ? `band-${band}` : undefined}>
-                        <input
-                          data-row={row}
-                          data-col={col}
-                          value={entry?.[field] ?? ''}
-                          onChange={(e) => write(agent.code, field, toNumber(e.target.value))}
-                          onPaste={(e) => paste(e, row, col)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              e.preventDefault()
-                              move(row, col, e.shiftKey ? -1 : 1, 0)
-                            }
-                          }}
-                        />
-                      </td>
-                    )
-                  })}
-                </tr>
+                <TableRow key={agent.code}>
+                  <TableCell sx={{ whiteSpace: 'nowrap' }}>{agent.shortName}</TableCell>
+                  {FIELDS.map((field, col) => (
+                    <NumberCell
+                      key={field}
+                      // The fills are the ones the source workbook paints, so
+                      // they stay in plain CSS alongside the report's own.
+                      band={field.endsWith('Percent') ? limraBand(entry?.[field] ?? null) : null}
+                      value={entry?.[field] ?? ''}
+                      row={row}
+                      col={col}
+                      onChange={(v) => write(agent.code, field, v)}
+                      onPaste={(e) => paste(e, row, col)}
+                      onEnter={(back) => move(row, col, back ? -1 : 1, 0)}
+                    />
+                  ))}
+                </TableRow>
               )
             })}
-            <tr>
-              <td className="name" style={{ fontWeight: 650 }}>
-                ระดับหน่วย
-              </td>
-              {FIELDS.map((field) => {
-                const isPercent = field.endsWith('Percent')
-                const band = isPercent ? limraBand(limraUnit?.[field] ?? null) : null
-                return (
-                  <td key={field} className={band ? `band-${band}` : undefined}>
-                    <input
-                      value={limraUnit?.[field] ?? ''}
-                      onChange={(e) => writeUnit({ [field]: toNumber(e.target.value) })}
-                    />
-                  </td>
-                )
-              })}
-            </tr>
-          </tbody>
-        </table>
-      </div>
+            <TableRow>
+              <TableCell sx={{ whiteSpace: 'nowrap', fontWeight: 600 }}>ระดับหน่วย</TableCell>
+              {FIELDS.map((field) => (
+                <NumberCell
+                  key={field}
+                  band={field.endsWith('Percent') ? limraBand(limraUnit?.[field] ?? null) : null}
+                  value={limraUnit?.[field] ?? ''}
+                  onChange={(v) => writeUnit({ [field]: v })}
+                />
+              ))}
+            </TableRow>
+          </TableBody>
+        </Table>
+      </TableContainer>
     </>
+  )
+}
+
+function NumberCell({
+  band,
+  value,
+  row,
+  col,
+  onChange,
+  onPaste,
+  onEnter,
+}: {
+  band: string | null
+  value: number | string
+  row?: number
+  col?: number
+  onChange: (value: number | null) => void
+  onPaste?: (e: React.ClipboardEvent) => void
+  onEnter?: (back: boolean) => void
+}) {
+  return (
+    <TableCell className={band ? `band-${band}` : undefined} sx={{ p: 0.25 }}>
+      <TextField
+        value={value}
+        variant="standard"
+        onChange={(e) => onChange(toNumber(e.target.value))}
+        onPaste={onPaste}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' && onEnter) {
+            e.preventDefault()
+            onEnter(e.shiftKey)
+          }
+        }}
+        slotProps={{
+          input: { disableUnderline: true },
+          // Read back by the keyboard navigation, which walks the rendered grid
+          // rather than keeping a second copy of its shape in state.
+          htmlInput: {
+            'data-row': row,
+            'data-col': col,
+            style: { textAlign: 'right', fontVariantNumeric: 'tabular-nums', width: 96 },
+          },
+        }}
+      />
+    </TableCell>
   )
 }
 

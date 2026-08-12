@@ -1,4 +1,20 @@
 import { useEffect, useState } from 'react'
+import Alert from '@mui/material/Alert'
+import AlertTitle from '@mui/material/AlertTitle'
+import Box from '@mui/material/Box'
+import Button from '@mui/material/Button'
+import Chip from '@mui/material/Chip'
+import Stack from '@mui/material/Stack'
+import Table from '@mui/material/Table'
+import TableBody from '@mui/material/TableBody'
+import TableCell from '@mui/material/TableCell'
+import TableContainer from '@mui/material/TableContainer'
+import TableHead from '@mui/material/TableHead'
+import TableRow from '@mui/material/TableRow'
+import Typography from '@mui/material/Typography'
+import SwapHorizIcon from '@mui/icons-material/SwapHoriz'
+import { DatePicker } from '@mui/x-date-pickers/DatePicker'
+import dayjs from 'dayjs'
 import { classifyFeeds, decodeThaiCsv, parseFeed, swapFycScopes, vpNumberFrom } from '../lib/csv'
 import { buildSnapshot, fingerprintOf, namesFrom } from '../lib/snapshot'
 import { importWorkbook } from '../lib/xlsxImport'
@@ -123,133 +139,120 @@ export function ImportPane({
 
   return (
     <>
-      <div className="pane-top">
-        <h1>นำเข้า CSV</h1>
-        <span className="spacer" />
-        <label style={{ fontSize: 13, color: 'var(--ink-2)' }}>
-          วันที่ข้อมูล{' '}
-          <input
-            type="date"
-            value={asOfDate}
-            onChange={(e) => onAsOfDateChange(e.target.value)}
-            style={{ font: 'inherit', padding: '5px 8px' }}
-          />
-        </label>
-      </div>
+      <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
+        <Typography variant="h1">นำเข้า CSV</Typography>
+        <Box sx={{ flex: 1 }} />
+        <DatePicker
+          label="วันที่ข้อมูล"
+          // Stored as ISO in the Gregorian calendar the CSVs use; shown in the
+          // Buddhist era the reports are written in.
+          format="D MMM BBBB"
+          value={dayjs(asOfDate)}
+          onChange={(d) => {
+            if (d?.isValid()) onAsOfDateChange(d.format('YYYY-MM-DD'))
+          }}
+          slotProps={{ textField: { size: 'small', sx: { width: 190 } } }}
+        />
+      </Stack>
 
-      <Dropzone accept=".csv" multiple onFiles={readCsvFiles}>
-        <b>ลากไฟล์ CSV ทั้ง 8 ไฟล์มาวางที่นี่</b>
+      <Dropzone accept=".csv" multiple onFiles={readCsvFiles} title="ลากไฟล์ CSV ทั้ง 8 ไฟล์มาวางที่นี่">
         ไม่ต้องเรียงลำดับ ไม่ต้องเปลี่ยนชื่อไฟล์ — ระบบอ่านชนิดจากหัวไฟล์
       </Dropzone>
 
-      {error ? (
-        <div className="notice bad">
-          <span className="ic">!</span>
-          <div>{error}</div>
-        </div>
-      ) : null}
+      {error ? <Alert severity="error">{error}</Alert> : null}
 
       {set ? (
         <>
-          <div className="notice">
-            <span className="ic">✓</span>
-            <div>
-              หน่วย <b>{set.unitLabel}</b> · รหัส {set.unitCode} ·{' '}
-              {set.caseAgent.rows.length} คนในไฟล์
-            </div>
-          </div>
-          <div className="scroll">
-            <table className="t">
-              <thead>
-                <tr>
-                  <th>ไฟล์</th>
-                  <th>อ่านได้เป็น</th>
-                  <th>แถว</th>
-                  <th>ยอดรวมปีนี้</th>
-                </tr>
-              </thead>
-              <tbody>
+          <Alert severity="success">
+            หน่วย <b>{set.unitLabel}</b> · รหัส {set.unitCode} · {set.caseAgent.rows.length} คนในไฟล์
+          </Alert>
+
+          <TableContainer>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell>ไฟล์</TableCell>
+                  <TableCell>อ่านได้เป็น</TableCell>
+                  <TableCell align="right">แถว</TableCell>
+                  <TableCell align="right">ยอดรวมปีนี้</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
                 {orderedFeeds(set).map(({ feed, label }) => (
-                  <tr key={feed.fileName}>
-                    <td className="m">{feed.fileName}</td>
-                    <td>{label}</td>
-                    <td className="m">{feed.rows.length}</td>
-                    <td className="m">{ytdTotal(feed).toLocaleString('en-US')}</td>
-                  </tr>
+                  <TableRow key={feed.fileName}>
+                    <TableCell>{feed.fileName}</TableCell>
+                    <TableCell>{label}</TableCell>
+                    <TableCell align="right">{feed.rows.length}</TableCell>
+                    <TableCell align="right">{ytdTotal(feed).toLocaleString('en-US')}</TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
-          </div>
+              </TableBody>
+            </Table>
+          </TableContainer>
 
           {duplicateRound && duplicateRound !== asOfDate ? (
-            <div className="notice attn">
-              <span className="ic">!</span>
-              <div>
-                <b>ตัวเลขชุดนี้บันทึกไว้แล้วที่วันที่ {duplicateRound}</b> —
-                บันทึกซ้ำอีกวันที่จะทำให้กริด Active ย้ายช่องผิดเดือน{' '}
-                <button
-                  className="btn quiet"
-                  style={{ fontSize: 11, marginLeft: 6 }}
-                  onClick={() => onAsOfDateChange(duplicateRound)}
-                >
+            <Alert
+              severity="warning"
+              action={
+                <Button size="small" color="inherit" onClick={() => onAsOfDateChange(duplicateRound)}>
                   ใช้วันที่ {duplicateRound}
-                </button>
-              </div>
-            </div>
+                </Button>
+              }
+            >
+              <AlertTitle>ตัวเลขชุดนี้บันทึกไว้แล้วที่วันที่ {duplicateRound}</AlertTitle>
+              บันทึกซ้ำอีกวันที่จะทำให้กริด Active ย้ายช่องผิดเดือน
+            </Alert>
           ) : null}
 
           {savedRounds.length > 0 ? (
-            <div className="notice">
-              <span className="ic">i</span>
-              <div>
-                รอบที่เก็บไว้แล้วของหน่วยนี้: <b>{savedRounds.join(' · ')}</b>
-              </div>
-            </div>
+            <Alert severity="info">
+              รอบที่เก็บไว้แล้วของหน่วยนี้: <b>{savedRounds.join(' · ')}</b>
+            </Alert>
           ) : null}
 
-          <div className="pane-top">
-            <button className="btn quiet" onClick={() => onSetChange(swapFycScopes(set))}>
+          <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
+            <Button startIcon={<SwapHorizIcon />} onClick={() => onSetChange(swapFycScopes(set))}>
               สลับ FYC All ↔ เฉพาะ Life
-            </button>
-            <span className="spacer" />
-            {roundSaved ? <span className="tag ok">บันทึกรอบนี้แล้ว</span> : null}
-            <button className="btn" onClick={save} disabled={busy}>
+            </Button>
+            <Box sx={{ flex: 1 }} />
+            {roundSaved ? <Chip size="small" color="success" label="บันทึกรอบนี้แล้ว" /> : null}
+            <Button variant="contained" onClick={save} loading={busy}>
               {roundSaved ? 'บันทึกทับอีกครั้ง' : 'บันทึกรอบนี้'}
-            </button>
-          </div>
+            </Button>
+          </Stack>
 
-          <div style={{ borderTop: '1px solid var(--line)', paddingTop: 16 }}>
-            <h2 style={{ fontSize: 15, margin: '0 0 4px' }}>
-              นำเข้าประวัติจาก xlsx เดิม{' '}
-              <span className="tag mute">ทำครั้งเดียวต่อหน่วย</span>
-            </h2>
-            <p style={{ margin: '0 0 12px', fontSize: 13.5, color: 'var(--ink-2)' }}>
+          <Box sx={{ borderTop: 1, borderColor: 'divider', pt: 2 }}>
+            <Stack direction="row" spacing={1} sx={{ mb: 0.5, alignItems: 'center' }}>
+              <Typography variant="h2">นำเข้าประวัติจาก xlsx เดิม</Typography>
+              <Chip size="small" variant="outlined" label="ทำครั้งเดียวต่อหน่วย" />
+            </Stack>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
               ดึงกริด Active 12 เดือน วันที่ออกรหัส เงื่อนไข MOC สถานะสัญญา และ Limra
               ที่พิมพ์ไว้แล้ว เข้าระบบทีเดียว
-            </p>
+            </Typography>
 
             {roundSaved ? (
-              <Dropzone accept=".xlsx" multiple={false} onFiles={readWorkbook}>
-                <b>ลากไฟล์ xlsx ของรอบนี้มาวาง</b>
+              <Dropzone
+                accept=".xlsx"
+                multiple={false}
+                onFiles={readWorkbook}
+                title="ลากไฟล์ xlsx ของรอบนี้มาวาง"
+              >
                 ข้ามได้ถ้าไม่มีไฟล์เดิม — กริดจะค่อย ๆ เต็มเองเมื่อสะสมหลายรอบ
               </Dropzone>
             ) : (
-              <div className="notice attn">
-                <span className="ic">!</span>
-                <div>
-                  กด <b>บันทึกรอบนี้</b> ก่อน แล้วช่องลาก xlsx จะเปิดให้ —
-                  ตัวเลขจาก CSV ต้องเข้าระบบก่อน ประวัติจึงจะมีที่เกาะ
-                </div>
-              </div>
+              <Alert severity="warning">
+                กด <b>บันทึกรอบนี้</b> ก่อน แล้วช่องลาก xlsx จะเปิดให้ — ตัวเลขจาก CSV
+                ต้องเข้าระบบก่อน ประวัติจึงจะมีที่เกาะ
+              </Alert>
             )}
 
             {workbookNote ? (
-              <div className="notice" style={{ marginTop: 12 }}>
-                <span className="ic">✓</span>
-                <div>{workbookNote}</div>
-              </div>
+              <Alert severity="success" sx={{ mt: 1.5 }}>
+                {workbookNote}
+              </Alert>
             ) : null}
-          </div>
+          </Box>
         </>
       ) : null}
     </>

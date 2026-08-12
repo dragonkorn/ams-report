@@ -1,3 +1,7 @@
+import Alert from '@mui/material/Alert'
+import AlertTitle from '@mui/material/AlertTitle'
+import Button from '@mui/material/Button'
+
 /**
  * Stays on screen for as long as the permission is missing.
  *
@@ -7,15 +11,16 @@
  */
 export function PersistenceNotice({ onRetry }: { onRetry: () => void }) {
   return (
-    <div className="notice attn">
-      <span className="ic">!</span>
-      <div>
-        <b>เบราว์เซอร์ยังไม่ให้สิทธิ์เก็บข้อมูลถาวร</b> — ข้อมูลอาจถูกล้างเมื่อพื้นที่ไม่พอ
-        และไม่มีสำเนาที่อื่น{' '}
-        <button className="btn quiet" style={{ fontSize: 11, marginLeft: 6 }} onClick={onRetry}>
+    <Alert
+      severity="warning"
+      action={
+        <Button size="small" color="inherit" onClick={onRetry}>
           ขอสิทธิ์อีกครั้ง
-        </button>
-      </div>
-    </div>
+        </Button>
+      }
+    >
+      <AlertTitle>เบราว์เซอร์ยังไม่ให้สิทธิ์เก็บข้อมูลถาวร</AlertTitle>
+      ข้อมูลอาจถูกล้างเมื่อพื้นที่ไม่พอ และไม่มีสำเนาที่อื่น
+    </Alert>
   )
 }

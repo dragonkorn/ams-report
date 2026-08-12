@@ -1,7 +1,26 @@
+import { useState } from 'react'
+import Box from '@mui/material/Box'
+import Button from '@mui/material/Button'
+import Chip from '@mui/material/Chip'
+import Divider from '@mui/material/Divider'
+import Drawer from '@mui/material/Drawer'
+import IconButton from '@mui/material/IconButton'
+import List from '@mui/material/List'
+import ListItemButton from '@mui/material/ListItemButton'
+import ListItemText from '@mui/material/ListItemText'
+import Stack from '@mui/material/Stack'
+import Tooltip from '@mui/material/Tooltip'
+import Typography from '@mui/material/Typography'
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutlined'
+import DownloadIcon from '@mui/icons-material/FileDownloadOutlined'
 import type { StorageHealth } from '../db'
 import { deleteRound } from '../db/repo'
 import { downloadBackup } from '../lib/download'
 import type { Unit } from '../lib/types'
+import { ConfirmDialog } from './ConfirmDialog'
+import { ThemeToggle } from './ThemeToggle'
+
+export const RAIL_WIDTH = 216
 
 interface Props {
   units: Unit[]
@@ -30,69 +49,136 @@ export function UnitRail({
   health,
   onClearAll,
 }: Props) {
+  const [pendingDelete, setPendingDelete] = useState<string | null>(null)
+
   return (
-    <nav className="rail">
-      <span className="rail-label">หน่วย</span>
-      {units.length === 0 ? (
-        <span style={{ padding: '0 16px', fontSize: 13, color: 'var(--ink-3)' }}>
-          ยังไม่มีหน่วย — ลาก CSV เข้ามา
-        </span>
-      ) : null}
-      {units.map((u) => (
-        <button
-          key={u.unitId}
-          className={`unit-btn${u.unitId === unitId ? ' on' : ''}`}
-          onClick={() => onPickUnit(u.unitId)}
-        >
-          <span className={`pip ${u.unitId === unitId ? 'ok' : ''}`} />
-          <span className="nm">{u.unitId}</span>
-          <small>{u.agencyCode}</small>
-        </button>
-      ))}
+    <Drawer
+      variant="permanent"
+      sx={{
+        width: RAIL_WIDTH,
+        flexShrink: 0,
+        [`& .MuiDrawer-paper`]: {
+          width: RAIL_WIDTH,
+          boxSizing: 'border-box',
+          bgcolor: 'md3.surfaceContainerLow',
+          borderRight: 1,
+          borderColor: 'divider',
+        },
+      }}
+    >
+      <Stack sx={{ height: '100%', py: 2 }}>
+        <Label>หน่วย</Label>
+        {units.length === 0 ? (
+          <Typography variant="caption" color="text.secondary" sx={{ px: 2 }}>
+            ยังไม่มีหน่วย — ลาก CSV เข้ามา
+          </Typography>
+        ) : null}
 
-      {unitId && savedRounds.length > 0 ? (
-        <div className="rail-rounds">
-          <span className="rail-label" style={{ padding: '14px 16px 6px' }}>
-            รอบที่เก็บไว้
-          </span>
-          {savedRounds.map((date) => (
-            <div key={date} className={`round-row${currentRound === date ? ' on' : ''}`}>
-              <button
-                className="round-pick"
-                title="แสดง report ของรอบนี้"
-                onClick={() => onPickRound(date)}
-              >
-                {date}
-              </button>
-              <button
-                className="link-btn"
-                title="ลบรอบนี้"
-                onClick={async () => {
-                  if (!confirm(`ลบรอบ ${date} ของ ${unitId} — แน่ใจไหม`)) return
-                  await deleteRound(unitId, date)
-                  onRoundDeleted(date)
+        <List dense disablePadding>
+          {units.map((u) => (
+            <ListItemButton
+              key={u.unitId}
+              selected={u.unitId === unitId}
+              onClick={() => onPickUnit(u.unitId)}
+            >
+              <ListItemText
+                primary={u.unitId}
+                secondary={u.agencyCode}
+                slotProps={{
+                  primary: { sx: { fontWeight: u.unitId === unitId ? 600 : 400 } },
+                  secondary: { variant: 'caption' },
                 }}
-              >
-                ลบ
-              </button>
-            </div>
+              />
+            </ListItemButton>
           ))}
-        </div>
-      ) : null}
+        </List>
 
-      <div className="rail-foot">
-        <span>
-          {health.persisted ? '✓ เก็บถาวรแล้ว' : '! ยังไม่ได้สิทธิ์เก็บถาวร'} ·{' '}
-          {health.snapshotCount} รอบ
-        </span>
-        <span>{(health.usageBytes / 1024).toFixed(0)} KB</span>
-        <button className="btn quiet" style={{ fontSize: 11 }} onClick={downloadBackup}>
-          ดาวน์โหลด .json
-        </button>
-        <button className="btn quiet" style={{ fontSize: 11 }} onClick={onClearAll}>
-          ล้างข้อมูลทั้งหมด
-        </button>
-      </div>
-    </nav>
+        {unitId && savedRounds.length > 0 ? (
+          <>
+            <Divider sx={{ mt: 1.5 }} />
+            <Label sx={{ pt: 1.5 }}>รอบที่เก็บไว้</Label>
+            <List dense disablePadding>
+              {savedRounds.map((date) => (
+                <ListItemButton
+                  key={date}
+                  selected={currentRound === date}
+                  onClick={() => onPickRound(date)}
+                  sx={{ pr: 1 }}
+                >
+                  <ListItemText
+                    primary={date}
+                    slotProps={{ primary: { variant: 'body2' } }}
+                  />
+                  <Tooltip title="ลบรอบนี้">
+                    <IconButton
+                      size="small"
+                      edge="end"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setPendingDelete(date)
+                      }}
+                    >
+                      <DeleteOutlineIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                </ListItemButton>
+              ))}
+            </List>
+          </>
+        ) : null}
+
+        <Box sx={{ mt: 'auto', px: 2, pt: 2 }}>
+          <Divider sx={{ mb: 1.5, mx: -2 }} />
+          <Stack direction="row" spacing={1} sx={{ mb: 1, alignItems: 'center' }}>
+            <Chip
+              size="small"
+              color={health.persisted ? 'success' : 'warning'}
+              variant={health.persisted ? 'filled' : 'outlined'}
+              label={health.persisted ? 'เก็บถาวรแล้ว' : 'ยังไม่ถาวร'}
+            />
+            <Typography variant="caption" color="text.secondary">
+              {health.snapshotCount} รอบ · {(health.usageBytes / 1024).toFixed(0)} KB
+            </Typography>
+            <Box sx={{ flex: 1 }} />
+            <ThemeToggle />
+          </Stack>
+          <Stack spacing={0.5} sx={{ alignItems: 'flex-start' }}>
+            <Button size="small" startIcon={<DownloadIcon />} onClick={downloadBackup}>
+              ดาวน์โหลด .json
+            </Button>
+            <Button size="small" color="error" onClick={onClearAll}>
+              ล้างข้อมูลทั้งหมด
+            </Button>
+          </Stack>
+        </Box>
+      </Stack>
+
+      <ConfirmDialog
+        open={pendingDelete != null}
+        title={`ลบรอบ ${pendingDelete ?? ''}`}
+        body={`ตัวเลขของรอบนี้และ Limra ที่พิมพ์ไว้จะหายไป โหลดกลับจากระบบ AIA ไม่ได้ เพราะระบบให้แต่ข้อมูลปัจจุบัน`}
+        confirmLabel="ลบรอบนี้"
+        destructive
+        onCancel={() => setPendingDelete(null)}
+        onConfirm={async () => {
+          const date = pendingDelete!
+          setPendingDelete(null)
+          if (unitId) await deleteRound(unitId, date)
+          onRoundDeleted(date)
+        }}
+      />
+    </Drawer>
+  )
+}
+
+function Label({ children, sx }: { children: React.ReactNode; sx?: object }) {
+  return (
+    <Typography
+      variant="overline"
+      color="text.secondary"
+      sx={{ px: 2, display: 'block', ...sx }}
+    >
+      {children}
+    </Typography>
   )
 }

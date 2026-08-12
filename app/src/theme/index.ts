@@ -4,6 +4,10 @@ import { MD3_DARK, MD3_LIGHT } from './tokens'
 export type Md3Roles = Record<keyof typeof MD3_LIGHT, string>
 
 declare module '@mui/material/styles' {
+  /** Turns on the CSS-variable theme, which is what carries two schemes at once. */
+  interface CssThemeVariables {
+    enabled: true
+  }
   interface Palette {
     /** The full Material 3 role set. Roles MUI has no slot for are read from here. */
     md3: Md3Roles
