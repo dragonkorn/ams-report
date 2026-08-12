@@ -150,14 +150,22 @@ export function ImportPane({
         <Box sx={{ flex: 1 }} />
         <DatePicker
           label="วันที่ข้อมูล"
-          // Stored as ISO in the Gregorian calendar the CSVs use; shown in the
-          // Buddhist era the reports are written in.
-          format="D MMM BBBB"
+          // The field is Gregorian because that is the calendar the adapter can
+          // both print and read back — it tokenises the format itself and knows
+          // no Buddhist year token. The Buddhist date the report will print sits
+          // under it instead, so the two are never in doubt.
+          format="D MMM YYYY"
           value={dayjs(asOfDate)}
           onChange={(d) => {
             if (d?.isValid()) onAsOfDateChange(d.format('YYYY-MM-DD'))
           }}
-          slotProps={{ textField: { size: 'small', sx: { width: 190 } } }}
+          slotProps={{
+            textField: {
+              size: 'small',
+              sx: { width: 200 },
+              helperText: thaiDateLabel(asOfDate),
+            },
+          }}
         />
       </Stack>
 

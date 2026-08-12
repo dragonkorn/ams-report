@@ -5,7 +5,6 @@ import { ThemeProvider } from '@mui/material/styles'
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider'
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
 import dayjs from 'dayjs'
-import buddhistEra from 'dayjs/plugin/buddhistEra'
 import 'dayjs/locale/th'
 import { App } from './App'
 import { theme } from './theme'
@@ -14,9 +13,8 @@ import { ErrorBoundary } from './ui/ErrorBoundary'
 // replica, which follows the source workbook instead.
 import './report.css'
 
-// Dates are stored as ISO, in the Gregorian calendar the source files use, and
-// shown in the Buddhist era the reports are written in.
-dayjs.extend(buddhistEra)
+// Thai month names in the date field. Years stay Gregorian there, matching the
+// source files; the Buddhist date the report prints is shown beside it.
 dayjs.locale('th')
 
 createRoot(document.getElementById('root')!).render(

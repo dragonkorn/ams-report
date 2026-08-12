@@ -203,6 +203,6 @@ npm i @mui/material @emotion/react @emotion/styled @mui/icons-material \
 | MUI/emotion ทำ PNG export เพี้ยน | test P0 กัน import · เทียบ PNG ด้วยตาทุกเฟสที่แตะ theme |
 | **bundle Sarabun แล้ว PNG ไม่มีฟอนต์** — [`imageExport.ts`](app/src/lib/imageExport.ts) ตั้ง `skipFonts: true` เพราะตอนนี้ใช้ฟอนต์ในเครื่องล้วน พอ P4 bundle webfont เข้ามา รูปที่ export จะไม่ฝังฟอนต์ | ตอน P4 ต้องตัดสินพร้อมกัน: ให้ Sarabun ใช้เฉพาะ chrome (report ยังพึ่งฟอนต์เครื่อง `skipFonts` คงไว้) หรือปล่อย `skipFonts: false` แล้วยอมให้ export ช้าลง |
 | MD3 palette เขียนเองแล้ว contrast ตก | ตรวจ contrast ตอน P4 ก่อนเอาไปใช้ |
-| DatePicker พ.ศ. อ่านค่าผิดปี | `asOfDate` เก็บ ISO ค.ศ. เหมือนเดิม แปลงเฉพาะตอนแสดง · เพิ่ม test ของ adapter |
+| ~~DatePicker พ.ศ. อ่านค่าผิดปี~~ **เกิดจริง** — `AdapterDayjs` ไม่รู้จัก token `BBBB` (`formatTokenMap` มีแค่ `YY`/`YYYY`) MUI tokenize format เอง ไม่ได้เรียก `dayjs.format()` ตอนวาด field ตัวอักษร `BBBB` เลยโผล่ในช่อง | ช่องวันที่ใช้ ค.ศ. ตามที่ adapter อ่าน/เขียนกลับได้จริง แล้วโชว์วันที่ พ.ศ. เป็น helper text ใต้ช่อง ซึ่งเป็นข้อความเดียวกับที่จะพิมพ์ลง report · ถอด plugin `buddhistEra` ออก (ไม่มีใครใช้แล้ว) · ถ้าจะเอา พ.ศ. ในช่องจริง ๆ ต้องเขียน adapter เองทั้ง format และ parse |
 | bundle โต (+95–120 KB gzip) | ยอมรับได้ — static site ผู้ใช้ 1 คน desktop |
 | refactor ชน golden test | ทุกเฟสจบด้วย `npm test` เขียว ห้ามข้าม |
