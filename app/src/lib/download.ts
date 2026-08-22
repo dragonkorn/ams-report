@@ -1,6 +1,6 @@
 import { exportEverything } from '../db'
 import type { ReportModel } from './compute'
-import type { ImageScale } from './imageExport'
+import type { ImageWidth } from './imageExport'
 
 /**
  * Everything that leaves the tool leaves as a file the user saves.
@@ -18,15 +18,18 @@ export function save(blob: Blob, filename: string) {
   URL.revokeObjectURL(url)
 }
 
+/** Returns the size of what was saved, which is what decides whether LINE re-encodes it. */
 export async function downloadImage(
   node: HTMLElement,
-  scale: ImageScale,
+  width: ImageWidth,
   unitId: string,
   asOfDate: string,
-) {
+): Promise<number> {
   // Loaded on demand so opening the tool does not pay for the renderer.
   const { buildReportImage } = await import('./imageExport')
-  save(await buildReportImage(node, scale), `${unitId}-${asOfDate}@${scale}x.png`)
+  const blob = await buildReportImage(node, width)
+  save(blob, `${unitId}-${asOfDate}-${width}px.png`)
+  return blob.size
 }
 
 export async function downloadWorkbook(model: ReportModel, unitId: string, asOfDate: string) {

@@ -14,7 +14,7 @@ import VisibilityIcon from '@mui/icons-material/VisibilityOutlined'
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOffOutlined'
 import type { ReportModel } from '../lib/compute'
 import { downloadImage, downloadWorkbook } from '../lib/download'
-import { IMAGE_SCALES, estimateWidth, type ImageScale } from '../lib/imageExport'
+import { IMAGE_WIDTHS, LINE_SAFE_WIDTH, type ImageWidth } from '../lib/imageExport'
 import { Report } from './Report'
 
 interface Props {
@@ -34,8 +34,11 @@ interface Props {
  */
 export function ReviewPane({ model, unitId, asOfDate, savedRounds }: Props) {
   const [showManual, setShowManual] = useState(true)
-  const [imageScale, setImageScale] = useState<ImageScale>(3)
+  const [imageWidth, setImageWidth] = useState<ImageWidth>(LINE_SAFE_WIDTH)
   const [exporting, setExporting] = useState(false)
+  // Shown after an export: the number that decides whether LINE re-encodes the
+  // picture, which no estimate beforehand can give.
+  const [lastSize, setLastSize] = useState<number | null>(null)
   const reportNode = useRef<HTMLDivElement>(null)
 
   const isLatest = asOfDate === savedRounds[savedRounds.length - 1]
@@ -58,15 +61,24 @@ export function ReviewPane({ model, unitId, asOfDate, savedRounds }: Props) {
         </Button>
         <TextField
           select
-          label="ความละเอียด"
-          sx={{ width: 150 }}
-          value={imageScale}
-          onChange={(e) => setImageScale(Number(e.target.value) as ImageScale)}
-          helperText={`~${estimateWidth(reportNode.current, imageScale).toLocaleString('en-US')} px`}
+          label="ความกว้างรูป"
+          sx={{ width: 190 }}
+          value={imageWidth}
+          onChange={(e) => {
+            setImageWidth(Number(e.target.value) as ImageWidth)
+            setLastSize(null)
+          }}
+          helperText={
+            lastSize == null
+              ? imageWidth === LINE_SAFE_WIDTH
+                ? 'ไลน์ไม่บีบรูปขนาดนี้'
+                : 'กว้างกว่านี้ไลน์จะบีบรูปให้เบลอ'
+              : `ไฟล์ล่าสุด ${Math.round(lastSize / 1024).toLocaleString('en-US')} KB`
+          }
         >
-          {IMAGE_SCALES.map((s) => (
-            <MenuItem key={s} value={s}>
-              {s}×
+          {IMAGE_WIDTHS.map((w) => (
+            <MenuItem key={w} value={w}>
+              {w.toLocaleString('en-US')} px{w === LINE_SAFE_WIDTH ? ' · ไลน์' : ''}
             </MenuItem>
           ))}
         </TextField>
@@ -78,7 +90,7 @@ export function ReviewPane({ model, unitId, asOfDate, savedRounds }: Props) {
             if (!reportNode.current) return
             setExporting(true)
             try {
-              await downloadImage(reportNode.current, imageScale, unitId, asOfDate)
+              setLastSize(await downloadImage(reportNode.current, imageWidth, unitId, asOfDate))
             } finally {
               setExporting(false)
             }
