@@ -146,6 +146,13 @@
   font-weight: 700;
   font-size: 13px;
   padding: 2px;
+  /* No rules between the lines: this block is one message written over several
+     lines, not a table of separate facts. The frame around it stays. */
+  border: none;
+}
+
+.report .rally-block {
+  border: 1px solid #595959;
 }
 
 .report .confidential {
@@ -174,6 +181,16 @@
 
 /* A cell whose value was typed rather than derived, shown only while reviewing. */
 .report.show-manual .manual {
+  outline: 1.5px solid #0e6a60;
+  outline-offset: -1.5px;
+}
+
+/* The rally lines are marked as one block, so the review aid does not put back
+   the rules the block was just freed of. */
+.report.show-manual .rally {
+  outline: none;
+}
+.report.show-manual .rally-block {
   outline: 1.5px solid #0e6a60;
   outline-offset: -1.5px;
 }
