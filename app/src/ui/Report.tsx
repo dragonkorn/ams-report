@@ -179,9 +179,12 @@ export function Report({
         </table>
       </div>
 
+      {/* Two cells, as in the source: the label carries the red, the warning
+          carries the words. */}
       <table className="footnote">
         <tbody>
           <tr>
+            <td className="footnote-label">สำคัญที่สุด</td>
             <td className="confidential">
               ข้อมูลนี้ให้ใช้เฉพาะในหน่วยงานเราเท่านั้น! ห้ามเปิดเผยกับบุคคลภายนอกเด็ดขาด...
               มิฉะนั้นจะมีความผิดตามกฎหมาย

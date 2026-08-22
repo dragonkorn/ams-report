@@ -48,6 +48,7 @@ const PINNED = [
   'rally',
   'rally-block',
   'footnote',
+  'footnote-label',
   'confidential',
   'row-produced',
   'row-suspended',

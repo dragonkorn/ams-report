@@ -477,7 +477,9 @@ function writeFootnote(ws: Worksheet, r: number) {
     ws,
     `F${r}:AL${r}`,
     ' ข้อมูลนี้ให้ใช้เฉพาะในหน่วยงานเราเท่านั้น!   ห้ามเปิดเผยกับบุคคลภายนอกเด็ดขาด...มิฉะนั้นจะมีความผิดตามกฎหมาย',
-    { bold: true },
+    // Red letters on white, the same as on screen: the label beside it is the
+    // only part that carries a red fill.
+    { bold: true, color: FILL.red },
   )
 }
 

@@ -155,7 +155,22 @@
   border: 1px solid #595959;
 }
 
+/* The label block: red cell, white letters. Kept as narrow as its own words so
+   the warning beside it gets the rest of the width. */
+.report .footnote-label {
+  background: var(--red);
+  color: #fff;
+  font-weight: 700;
+  white-space: nowrap;
+  width: 1%;
+  padding: 3px 10px;
+}
+
+/* The warning itself: red letters on white, so it reads as a warning without
+   turning the whole strip into a red bar. */
 .report .confidential {
+  background: #fff;
+  color: var(--red);
   font-weight: 700;
   padding: 3px;
 }

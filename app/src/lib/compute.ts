@@ -106,6 +106,24 @@ export const CAREER_ACTIVE_MONTHS = 9
 /** The note that flags a contract needing work before the quarter closes. */
 export const NOTE_FIX_THIS_QUARTER = 'ต้องแก้ Q นี้'
 
+/** Retirement, spelled the way it is spelled — the source workbooks drop the ย. */
+export const NOTE_RETIRED = 'เกษียณอายุ'
+
+/**
+ * Tidy a contract note typed by hand or lifted out of an old workbook.
+ *
+ * The same two notes appear spelled several ways across the source sheets —
+ * `เกษีณอายุ` missing a letter, `ต้องแก้Qนี้` missing its spaces — and the
+ * report both prints the note and colours the row by it, so an unrecognised
+ * spelling shows up twice: misspelt on paper, and unmarked.
+ */
+export function normalizeNote(note: string): string {
+  const trimmed = note.replace(/\s+/g, ' ').trim()
+  if (/^เกษี?ย?[ณน]\s?อายุ$/.test(trimmed)) return NOTE_RETIRED
+  if (/^ต้องแก้\s?Q\s?นี้$/.test(trimmed)) return NOTE_FIX_THIS_QUARTER
+  return trimmed
+}
+
 /** The tint carried across B–H, or none. */
 export type RowTint = 'suspended' | 'produced' | null
 
@@ -260,7 +278,7 @@ export function buildReport(input: BuildInput): ReportModel {
       issueDate: agent.issueDate,
       moc: agent.moc,
       status: agent.status,
-      note: agent.note,
+      note: normalizeNote(agent.note),
       values,
       fycTarget: ladder.target,
       fycShortfall: ladder.shortfall,

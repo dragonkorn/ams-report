@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { parseRoute } from '../src/hooks/useRoute'
 import { canOpen, forwardBlockedBy, type StageState } from '../src/lib/stages'
+import { normalizeNote } from '../src/lib/compute'
 
 const NOTHING: StageState = { hasRound: false, roundSaved: false, hasModel: false }
 const IMPORTED: StageState = { hasRound: true, roundSaved: true, hasModel: true }
@@ -53,5 +54,29 @@ describe('moving forward says why when it cannot', () => {
   it('holds the export until there is a report to export', () => {
     expect(forwardBlockedBy('review', { ...IMPORTED, hasModel: false })).not.toBeNull()
     expect(forwardBlockedBy('review', IMPORTED)).toBeNull()
+  })
+})
+
+/**
+ * Notes arrive spelled several ways: typed by hand, or lifted out of workbooks
+ * that were themselves typed by hand. The report prints the note and colours the
+ * row by it, so an unrecognised spelling is wrong twice over.
+ */
+describe('contract notes are read whichever way they were spelled', () => {
+  it.each([
+    ['เกษีณอายุ', 'เกษียณอายุ'],
+    ['เกษียณอายุ', 'เกษียณอายุ'],
+    ['เกษียนอายุ', 'เกษียณอายุ'],
+    ['  เกษีณอายุ ', 'เกษียณอายุ'],
+    ['ต้องแก้Qนี้', 'ต้องแก้ Q นี้'],
+    ['ต้องแก้ Qนี้', 'ต้องแก้ Q นี้'],
+    ['ต้องแก้ Q นี้', 'ต้องแก้ Q นี้'],
+  ])('%s reads as %s', (raw, expected) => {
+    expect(normalizeNote(raw)).toBe(expected)
+  })
+
+  it('leaves anything else as it was typed', () => {
+    expect(normalizeNote('ลาออกเอง')).toBe('ลาออกเอง')
+    expect(normalizeNote('')).toBe('')
   })
 })

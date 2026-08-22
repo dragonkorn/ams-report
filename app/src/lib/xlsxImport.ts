@@ -1,4 +1,5 @@
 import * as XLSX from 'xlsx'
+import { normalizeNote } from './compute'
 import { codeOf } from './csv'
 import { parseThaiDateLabel } from './format'
 import type { Agent, LimraEntry, LimraUnit, RosterStatus } from './types'
@@ -77,7 +78,7 @@ export function importWorkbook(data: ArrayBuffer, unitId: string): WorkbookImpor
       // Every value in a source workbook was typed by a human, so treat it as confirmed.
       mocConfirmed: true,
       status: statusFrom(text(`G${r}`)),
-      note: text(`H${r}`),
+      note: normalizeNote(text(`H${r}`)),
       updatedAt: now,
     })
 
