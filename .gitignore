@@ -9,3 +9,5 @@ exampleFiles_2/
 *.zip
 *.xlsx
 *.csv
+# Exported reports land in the working directory — they are the data itself.
+*.png
