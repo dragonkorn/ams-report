@@ -67,6 +67,14 @@ export function activeGrid(
 
   const sorted = [...snapshots].sort((a, b) => a.asOfDate.localeCompare(b.asOfDate))
   let provisionalMonth: number | null = null
+  /**
+   * Which running total was last filled in from a month still in progress.
+   *
+   * A second import inside the same month must replace that figure rather than
+   * be dropped: it is the same month counted later, and a month gains cases as
+   * it goes. Anything a later month wrote is exact and is never touched again.
+   */
+  let provisionalSlot: number | null = null
 
   for (const snap of sorted) {
     const row = snap.rows[code]
@@ -75,8 +83,9 @@ export function activeGrid(
     // Through the end of the month before this snapshot: always a complete month.
     cumulative[m] = row.caseYtd - row.caseApprovedMonth
     // Through this snapshot's own month: only final once a later month reports.
-    if (cumulative[m + 1] == null) {
+    if (cumulative[m + 1] == null || provisionalSlot === m + 1) {
       cumulative[m + 1] = row.caseYtd
+      provisionalSlot = m + 1
       provisionalMonth = m
     }
   }

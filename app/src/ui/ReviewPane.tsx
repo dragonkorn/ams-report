@@ -112,7 +112,13 @@ export function ReviewPane({ model, unitId, asOfDate, savedRounds }: Props) {
           <AlertTitle>
             ผลรวมกริดไม่เท่างานอนุมัติสะสมปี {model.gridMismatches.length} คน
           </AlertTitle>
-          แปลว่า snapshot ขาดเดือน · รหัส {model.gridMismatches.join(', ')}
+          กริด Active ของรหัส {model.gridMismatches.join(', ')} ไม่ตรงกับยอดสะสมปีที่ไฟล์ส่งมา
+          — ตัวเลขช่องอื่นถูกหมด ที่เพี้ยนคือกริดกับ x/12 ของคนเหล่านี้
+          <Box component="ul" sx={{ m: 0, mt: 0.5, pl: 2.5 }}>
+            <li>บันทึกตัวเลขชุดเดิมซ้ำคนละวันที่ หรือลงวันที่ผิดเดือน → ลบรอบที่ผิดออกแล้วบันทึกใหม่</li>
+            <li>กริดที่นำเข้าจาก xlsx เก่าเป็นคนละรอบกับ CSV ชุดนี้ → ลาก xlsx ของรอบที่ถูกเข้าไปทับ</li>
+            <li>ขาด snapshot บางเดือนจริง ๆ → เดือนนั้นเติมเองไม่ได้ ต้องมีไฟล์ของเดือนถัดไป</li>
+          </Box>
         </Alert>
       ) : (
         <Alert severity="success">ผลรวมกริด Active เท่างานอนุมัติสะสมปี ครบทุกคน</Alert>
