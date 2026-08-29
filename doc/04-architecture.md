@@ -11,6 +11,8 @@ CSV 8 ไฟล์ ──parseFeed──> Feed[] ──classifyFeeds──> Feed
                                                       ▼
 xlsx เดิม ──importWorkbook──> agents · limra · grids   Snapshot
                                      │                  │
+clipboard ──parseLimraPaste──> planLimraPaste ──────────┤
+(ตาราง Limra จากเว็บ AIA)            │                  │
                                      └────> IndexedDB <─┘
                                               │
                                      buildReport (pure)
@@ -33,7 +35,8 @@ xlsx เดิม ──importWorkbook──> agents · limra · grids   Snapsho
 | `csv.ts` | decode · parse · แยกชนิด/ระดับ/หน่วย · แยก FYC All vs Life |
 | `snapshot.ts` | outer join 4 feed เป็น 1 แถวต่อคน · ลายนิ้วมือรอบ |
 | `compute.ts` | FYC ladder · กริด Active · แถบ Limra · MOC · ประกอบ ReportModel |
-| `format.ts` | รูปแบบตัวเลข วันที่ ชื่อย่อ |
+| `format.ts` | รูปแบบตัวเลข วันที่ ชื่อย่อ · หัวตาราง Limra |
+| `limraPaste.ts` | อ่านตาราง Limra ที่ก๊อบจากเว็บ AIA · บอกว่าก้อนนี้จะเปลี่ยนช่องไหนบ้าง |
 | `xlsxImport.ts` / `xlsxExport.ts` | อ่าน/เขียนไฟล์ Excel |
 | `imageExport.ts` | เรนเดอร์ PNG จาก DOM |
 
@@ -51,7 +54,16 @@ xlsx เดิม ──importWorkbook──> agents · limra · grids   Snapsho
 | `snapshots` | `unitId + asOfDate` | **ถาวร สะสม ไม่ลบ** | **กู้ไม่ได้** — ระบบ AIA ให้โหลดแต่ข้อมูลปัจจุบัน |
 | `limra` | `unitId + asOfDate + code` | ต่อรอบ | กรอกใหม่ได้ถ้ายังมีต้นทาง |
 | `limraUnits` | `unitId + asOfDate` | ต่อรอบ | เช่นกัน |
+
 | `seededGrids` | `unitId + code + year` | ถาวร | นำเข้า xlsx ใหม่ได้ |
+
+### ทำไม `limraUnits` เก็บทั้งข้อความและวันที่
+
+`limraAsOfLabel` คือหัวตารางที่พิมพ์ลง report ดิบ ๆ · `limraAsOfDate` คือวันที่เบื้องหลัง
+
+แยกสองช่องเพราะ xlsx ที่นำเข้ามาเขียนหัวตารางกันคนละแบบ (ดู [01](01-data-sources.md))
+ถ้าเหลือแต่วันที่แล้ว render ข้อความเอา หัวตารางของ 5 หน่วยที่นำเข้าไว้แล้วจะเปลี่ยนทันที
+โดยผู้ใช้ไม่ได้สั่ง — ของเก่าจึงไม่ขยับจนกว่าผู้ใช้จะเลือกวันใหม่จาก date picker เอง
 
 เหตุผลที่แยก: ลาก CSV ใหม่กี่ครั้งก็ไม่กระทบ `agents` และ **กริด Active 12 เดือนสร้างจาก `snapshots` สะสมล้วน**
 

@@ -22,6 +22,8 @@ export interface WorkbookImport {
   heading: string
   dateLabel: string
   limraAsOfLabel: string
+  /** Read back out of that heading where it can be; `null` where it cannot. */
+  limraAsOfDate: string | null
   rallyLines: string[]
   agents: Agent[]
   limra: LimraEntry[]
@@ -108,6 +110,7 @@ export function importWorkbook(data: ArrayBuffer, unitId: string): WorkbookImpor
     heading,
     dateLabel,
     limraAsOfLabel: text('AE3'),
+    limraAsOfDate: parseThaiDateLabel(text('AE3')),
     rallyLines: readRallyLines(ws, summaryTop),
     agents,
     limra,
@@ -116,6 +119,10 @@ export function importWorkbook(data: ArrayBuffer, unitId: string): WorkbookImpor
           unitId,
           asOfDate,
           limraAsOfLabel: text('AE3'),
+          // The heading is free text (`Limra   ณ  30 มิ.ย.69` in four of the
+          // five workbooks, `2569` in the fifth), so the date behind it is
+          // recovered where possible and the text itself left untouched.
+          limraAsOfDate: parseThaiDateLabel(text('AE3')),
           p12mPercent: num(`O${summaryTop}`),
           p12mPremiumLost: num(`P${summaryTop}`),
           ytdPercent: num(`Q${summaryTop}`),

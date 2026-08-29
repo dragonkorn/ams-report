@@ -9,7 +9,13 @@
 export { listUnits } from './units'
 export { listAgents, patchAgent } from './agents'
 export { listSeededGrids } from './grids'
-export { listLimra, listLimraUnits, setLimraField, setLimraUnitField } from './limra'
+export {
+  applyLimraPaste,
+  listLimra,
+  listLimraUnits,
+  setLimraField,
+  setLimraUnitField,
+} from './limra'
 export type { LimraField } from './limra'
 export { deleteRound, findRoundWithSameFigures, listSnapshots } from './snapshots'
 export { applyWorkbook, saveRound } from './import'

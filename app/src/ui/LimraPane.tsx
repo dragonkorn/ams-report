@@ -1,6 +1,8 @@
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
+import dayjs from 'dayjs'
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
+import Button from '@mui/material/Button'
 import Chip from '@mui/material/Chip'
 import LinearProgress from '@mui/material/LinearProgress'
 import Stack from '@mui/material/Stack'
@@ -12,10 +14,14 @@ import TableHead from '@mui/material/TableHead'
 import TableRow from '@mui/material/TableRow'
 import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
+import { DatePicker } from '@mui/x-date-pickers/DatePicker'
 import { setLimraField, setLimraUnitField, type LimraField } from '../db/repo'
 import { limraBand, type LimraBand } from '../lib/compute'
+import { limraLabelFrom } from '../lib/format'
 import { limraFillSx } from '../lib/limraFills'
+import { looksLikeLimraPaste } from '../lib/limraPaste'
 import type { Agent, LimraEntry, LimraUnit } from '../lib/types'
+import { LimraPasteDialog } from './LimraPasteDialog'
 
 const FIELDS: LimraField[] = ['p12mPercent', 'p12mPremiumLost', 'ytdPercent', 'ytdPremiumLost']
 
@@ -35,6 +41,9 @@ interface Props {
  */
 export function LimraPane({ unitId, asOfDate, agents, limra, limraUnit }: Props) {
   const grid = useRef<HTMLTableSectionElement>(null)
+  const [pasteOpen, setPasteOpen] = useState(false)
+  /** Carries a paste that landed in the grid across to the dialog. */
+  const [pasteText, setPasteText] = useState('')
   const visible = [...agents]
     .filter((a) => a.status !== 'ended')
     .sort((a, b) => Number(a.code) - Number(b.code))
@@ -45,7 +54,9 @@ export function LimraPane({ unitId, asOfDate, agents, limra, limraUnit }: Props)
     return setLimraField(unitId, asOfDate, code, limra[code], field, value)
   }
 
-  function writeUnit(changes: Partial<Pick<LimraUnit, LimraField | 'limraAsOfLabel'>>) {
+  function writeUnit(
+    changes: Partial<Pick<LimraUnit, LimraField | 'limraAsOfLabel' | 'limraAsOfDate'>>,
+  ) {
     return setLimraUnitField(unitId, asOfDate, limraUnit, changes)
   }
 
@@ -54,6 +65,16 @@ export function LimraPane({ unitId, asOfDate, agents, limra, limraUnit }: Props)
     const text = e.clipboardData.getData('text/plain')
     if (!text.includes('\t') && !text.includes('\n')) return
     e.preventDefault()
+
+    // A table copied off the AIA site is tab-separated too, and dropped here it
+    // would put a name where a percentage goes without complaining. The user is
+    // holding the right data and aimed at the wrong place, so it goes where it
+    // was meant to go rather than being refused.
+    if (looksLikeLimraPaste(text)) {
+      setPasteText(text)
+      setPasteOpen(true)
+      return
+    }
 
     const lines = text.replace(/\r/g, '').split('\n').filter(Boolean)
     for (let r = 0; r < lines.length; r++) {
@@ -80,13 +101,38 @@ export function LimraPane({ unitId, asOfDate, agents, limra, limraUnit }: Props)
     <>
       <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
         <Typography variant="h1">Limra</Typography>
-        <TextField
+        <DatePicker
           label="Limra ณ"
-          placeholder="30 มิ.ย.2569"
-          sx={{ width: 190 }}
-          value={limraUnit?.limraAsOfLabel ?? ''}
-          onChange={(e) => writeUnit({ limraAsOfLabel: e.target.value })}
+          // Gregorian in the field for the same reason as the round date: the
+          // adapter has no Buddhist year token. The heading that will actually
+          // print sits underneath.
+          format="D MMM YYYY"
+          value={limraUnit?.limraAsOfDate ? dayjs(limraUnit.limraAsOfDate) : null}
+          // Limra runs a month behind the round, the same month in every unit,
+          // so the calendar opens there. Nothing is stored until a day is picked.
+          referenceDate={dayjs(asOfDate).subtract(1, 'month').endOf('month')}
+          onChange={(d) => {
+            if (!d?.isValid()) return
+            const iso = d.format('YYYY-MM-DD')
+            writeUnit({ limraAsOfDate: iso, limraAsOfLabel: limraLabelFrom(iso) })
+          }}
+          slotProps={{
+            textField: {
+              size: 'small',
+              sx: { width: 210 },
+              helperText: limraUnit?.limraAsOfLabel || 'ยังไม่ได้เลือกวันที่',
+            },
+          }}
         />
+        <Button
+          variant="contained"
+          onClick={() => {
+            setPasteText('')
+            setPasteOpen(true)
+          }}
+        >
+          วางจากเว็บ AIA
+        </Button>
         <Box sx={{ flex: 1 }} />
         <Chip
           size="small"
@@ -107,7 +153,7 @@ export function LimraPane({ unitId, asOfDate, agents, limra, limraUnit }: Props)
 
       <Alert severity="info" icon={false}>
         <b>Tab</b> ไปขวา · <b>Enter</b> ลงล่าง · วางทั้งบล็อกจาก Excel ได้ที่ช่องใดก็ได้ ·
-        สีขึ้นเองตามเกณฑ์ 100 / 90 / 80
+        ถ้าเป็นตารางจากเว็บ AIA ใช้ปุ่ม <b>วางจากเว็บ AIA</b> · สีขึ้นเองตามเกณฑ์ 100 / 90 / 80
       </Alert>
 
       <TableContainer>
@@ -164,6 +210,20 @@ export function LimraPane({ unitId, asOfDate, agents, limra, limraUnit }: Props)
           </TableBody>
         </Table>
       </TableContainer>
+
+      <LimraPasteDialog
+        open={pasteOpen}
+        initialText={pasteText}
+        unitId={unitId}
+        asOfDate={asOfDate}
+        agents={agents}
+        limra={limra}
+        limraUnit={limraUnit}
+        onClose={() => {
+          setPasteOpen(false)
+          setPasteText('')
+        }}
+      />
     </>
   )
 }

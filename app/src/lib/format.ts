@@ -122,3 +122,16 @@ export function issueYearFrom(raw: string): number | null {
   const last = Number(years[years.length - 1])
   return last < 2400 ? last + 543 : last
 }
+
+/**
+ * ISO date → `Limra ณ 30 มิ.ย.2569`, the whole heading the report prints.
+ *
+ * The heading is one free-text cell in the source workbooks, and the five they
+ * were imported from disagree about the year: one writes `2569`, the other four
+ * `69`. Anything written from here uses the unambiguous four-digit form; labels
+ * that came in from a workbook are left exactly as they were found.
+ */
+export function limraLabelFrom(iso: string): string {
+  const d = new Date(iso)
+  return `Limra ณ ${d.getDate()} ${THAI_MONTHS[d.getMonth()]}${d.getFullYear() + 543}`
+}

@@ -148,6 +148,13 @@ export interface Agent {
   updatedAt: string
 }
 
+/**
+ * The four figures held per agent per round. Named here rather than beside the
+ * store so the pure parsing layer can talk about them without reaching into the
+ * database module.
+ */
+export type LimraField = 'p12mPercent' | 'p12mPremiumLost' | 'ytdPercent' | 'ytdPremiumLost'
+
 /** Limra figures for one agent in one round. Typed by hand; no source file exists. */
 export interface LimraEntry {
   unitId: string
@@ -164,8 +171,19 @@ export interface LimraEntry {
 export interface LimraUnit {
   unitId: string
   asOfDate: string
-  /** Limra runs to a different date than the report itself. */
+  /**
+   * The heading printed above the Limra columns, verbatim.
+   *
+   * Workbooks imported from before this tool wrote whatever they liked here —
+   * the five on hand disagree about the year alone — so the text is stored as
+   * found rather than rebuilt from `limraAsOfDate`.
+   */
   limraAsOfLabel: string
+  /**
+   * The date behind that heading, once something could read one out of it.
+   * `null` for an imported heading that no date could be recovered from.
+   */
+  limraAsOfDate: string | null
   p12mPercent: number | null
   p12mPremiumLost: number | null
   ytdPercent: number | null

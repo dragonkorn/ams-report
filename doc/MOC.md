@@ -33,11 +33,13 @@ app/
   src/lib/csv.ts          อ่าน CSV, แยกชนิด/ระดับ/หน่วย, แยก FYC All vs Life
   src/lib/snapshot.ts     รวม 4 feed เป็นแถวเดียวต่อคน + ลายนิ้วมือรอบ
   src/lib/compute.ts      กติกาทั้งหมด — FYC ladder, กริด Active, แถบสี Limra, MOC
+  src/lib/limraPaste.ts   อ่านตาราง Limra ที่ก๊อบจากเว็บ AIA + บอกว่าจะเปลี่ยนช่องไหน
   src/lib/format.ts       รูปแบบตัวเลข/วันที่/ชื่อย่อ
   src/lib/xlsxImport.ts   นำเข้าประวัติจาก xlsx เดิม
   src/lib/xlsxExport.ts   เขียน xlsx กลับออกไป
   src/lib/imageExport.ts  บันทึก PNG ความละเอียดสูง
   src/db/index.ts         Dexie + storage.persist() + กั้นเบราว์เซอร์
+  src/ui/LimraPasteDialog.tsx  กล่องวางตาราง Limra จากเว็บ AIA
   src/ui/Report.tsx       replica ที่แสดงบนจอและใช้พิมพ์ PDF
   test/                   golden test เทียบกับ xlsx ต้นฉบับ 5 หน่วย
 ```
