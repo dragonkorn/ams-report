@@ -130,7 +130,9 @@
   color: #fff;
 }
 
-.report .total-row td {
+/* :where() keeps this below .cell-* and .band-q*, so the summed columns keep
+   their section colour and only the unpainted cells fall back to grey. */
+.report :where(.total-row) td {
   font-weight: 700;
   background: #f2f2f2;
 }

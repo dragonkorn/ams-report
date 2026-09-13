@@ -139,7 +139,7 @@ export function Report({
           <thead>
             {/* The column colours run down from these headings; see SummaryRow. */}
             <tr>
-              <th className="left cell-green">ผลผลิตหน่วย · {model.heading}</th>
+              <th className="left">ผลผลิตหน่วย · {model.heading}</th>
               <th className="cell-pink">Month End of Last Year</th>
               <th>MTD Last Year</th>
               <th className="cell-pink">CMTD Sub</th>
@@ -287,27 +287,32 @@ function TotalRow({ model }: { model: ReportModel }) {
     model.rows.reduce((s, r) => s + (r.months[m] ?? 0), 0)
 
   /** One total cell, printed red when the unit is behind on that figure. */
-  const total = (value: number, fmt: (n: number) => string) => (
-    <td className={figure(value)}>{fmt(value)}</td>
+  const total = (value: number, fmt: (n: number) => string, className?: string) => (
+    <td className={figure(value, className)}>{fmt(value)}</td>
   )
 
+  // Each total keeps its column's section colour whatever the figure, as the
+  // xlsx export does.
   return (
     <tr className="total-row">
       <td colSpan={6} className="left">
         รวม
       </td>
-      {total(sum((r) => r.values.caseYtd), fmtCount)}
-      {total(sum((r) => r.values.fypYtd), fmtMoney)}
-      {total(sum((r) => r.values.fycAllYtd), fmtMoney)}
-      {total(sum((r) => r.values.fycLifeYtd), fmtMoney)}
-      {total(sum((r) => r.values.caseSubMonth), fmtCount)}
-      {total(sum((r) => r.values.caseApprovedMonth), fmtCount)}
-      {total(sum((r) => r.values.fypSubMonth), fmtMoney)}
-      {total(sum((r) => r.values.fypApprovedMonth), fmtMoney)}
-      {total(sum((r) => r.values.fycAllMonth), fmtMoney)}
-      {total(sum((r) => r.values.fycLifeMonth), fmtMoney)}
+      {total(sum((r) => r.values.caseYtd), fmtCount, 'cell-green')}
+      {total(sum((r) => r.values.fypYtd), fmtMoney, 'cell-green')}
+      {total(sum((r) => r.values.fycAllYtd), fmtMoney, 'cell-green')}
+      {total(sum((r) => r.values.fycLifeYtd), fmtMoney, 'cell-green')}
+      {total(sum((r) => r.values.caseSubMonth), fmtCount, 'cell-pink')}
+      {total(sum((r) => r.values.caseApprovedMonth), fmtCount, 'cell-green')}
+      {total(sum((r) => r.values.fypSubMonth), fmtMoney, 'cell-pink')}
+      {total(sum((r) => r.values.fypApprovedMonth), fmtMoney, 'cell-green')}
+      {total(sum((r) => r.values.fycAllMonth), fmtMoney, 'cell-blue')}
+      {total(sum((r) => r.values.fycLifeMonth), fmtMoney, 'cell-blue')}
       {Array.from({ length: 12 }, (_, m) => (
-        <td key={m} className={figure(monthTotal(m), 'grid-cell')}>
+        <td
+          key={m}
+          className={figure(monthTotal(m), `grid-cell band-q${Math.floor(m / 3) + 1}`)}
+        >
           {fmtGridCell(monthTotal(m))}
         </td>
       ))}

@@ -382,13 +382,10 @@ function writeSummary(ws: Worksheet, headTop: number, top: number, model: Report
   for (let r = headTop; r < top; r++) ws.getRow(r).height = 26.25
 
   const green = FILL.paleGreen
-  merged(ws, `B${headTop}:E${headTop}`, 'ผลผลิตหน่วย', { bold: true, fill: green })
-  merged(ws, `B${headTop + 1}:E${headTop + 1}`, model.heading, { bold: true, fill: green })
+  merged(ws, `B${headTop}:E${headTop}`, 'ผลผลิตหน่วย', { bold: true })
+  merged(ws, `B${headTop + 1}:E${headTop + 1}`, model.heading, { bold: true })
   // Linked to the heading above, so editing the date in one place moves both.
-  mergedFormula(ws, `B${headTop + 2}:E${headTop + 3}`, 'B4', model.dateLabel, {
-    bold: true,
-    fill: green,
-  })
+  mergedFormula(ws, `B${headTop + 2}:E${headTop + 3}`, 'B4', model.dateLabel, { bold: true })
 
   set(ws, `F${headTop}`, 'Month End', { bold: true, fill: FILL.pink })
   merged(ws, `G${headTop}:J${headTop}`, 'MTD', { bold: true, fill: FILL.yellow })
