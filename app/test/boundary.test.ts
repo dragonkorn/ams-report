@@ -52,6 +52,7 @@ const PINNED = [
   'confidential',
   'row-produced',
   'row-suspended',
+  'row-submitted',
   'band-year',
   'band-month',
   'band-active',

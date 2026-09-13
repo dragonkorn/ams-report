@@ -543,11 +543,15 @@ function styleCell(ws: Worksheet, addr: string, style: CellStyle) {
   }
 }
 
-/** B–H carries the row tint: yellow for contracts on hold, green for producers. */
+/**
+ * B–H carries the row tint: yellow for contracts on hold, green for an approved
+ * case, pink for a submitted one still waiting.
+ */
 function rowHighlight(row: ReportRow): string | undefined {
   const tint = rowTint(row)
   if (tint === 'suspended') return FILL.yellow
   if (tint === 'produced') return FILL.paleGreen
+  if (tint === 'submitted') return FILL.pink
   return undefined
 }
 

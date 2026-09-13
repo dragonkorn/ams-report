@@ -257,12 +257,16 @@
   }
 }
 
-/* Whole-row tints: suspended contracts, and whoever produced this month. */
+/* Whole-row tints: suspended contracts, whoever had a case approved this month,
+   and whoever submitted one that is not approved yet. */
 .report .ident.row-suspended {
   background: var(--yellow);
 }
 .report .ident.row-produced {
   background: var(--pale-green);
+}
+.report .ident.row-submitted {
+  background: var(--pink);
 }
 
 /* Single cells painted by their own rule rather than the row's. */

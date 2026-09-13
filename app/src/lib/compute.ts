@@ -134,30 +134,33 @@ export function normalizeNote(note: string): string {
 }
 
 /** The tint carried across B–H, or none. */
-export type RowTint = 'suspended' | 'produced' | null
+export type RowTint = 'suspended' | 'produced' | 'submitted' | null
 
 /**
- * Two groups are picked out of the roster at a glance: contracts on hold, and
- * whoever had a case approved this month. A month's premium without an approved
- * case behind it does not count — 410513 has FYP but no case and stays plain.
+ * Three groups are picked out of the roster at a glance, in this order:
+ * contracts on hold, whoever had a case approved this month, and whoever has
+ * submitted a case that is not approved yet. Only case counts decide it — a
+ * month's premium without a case behind it leaves the row plain.
  */
 export function rowTint(row: Pick<ReportRow, 'status' | 'values'>): RowTint {
   if (row.status === 'suspended') return 'suspended'
-  return row.values.caseApprovedMonth > 0 ? 'produced' : null
+  if (row.values.caseApprovedMonth > 0) return 'produced'
+  return row.values.caseSubMonth > 0 ? 'submitted' : null
 }
 
 /**
  * Which cells of the month block carry their section colour.
  *
- * Submitted cases stand on their own; every other figure follows the approved
- * case count, so premium booked without an approved case behind it stays plain.
+ * Submitted figures stand on their own; the approved premium and the FYC follow
+ * the approved case count, so premium booked without an approved case behind it
+ * stays plain.
  */
 export function monthFills(v: SnapshotRow) {
   const approved = v.caseApprovedMonth > 0
   return {
     caseSub: v.caseSubMonth > 0,
     caseApproved: approved,
-    fypSub: approved && v.fypSubMonth > 0,
+    fypSub: v.fypSubMonth > 0,
     fypApproved: approved && v.fypApprovedMonth > 0,
     fycAll: approved && v.fycAllMonth > 0,
     fycLife: approved && v.fycLifeMonth > 0,

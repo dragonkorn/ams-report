@@ -5,8 +5,9 @@ import ExcelJS from 'exceljs'
 import type { Worksheet } from 'exceljs'
 import { classifyFeeds, decodeThaiCsv, parseFeed } from '../src/lib/csv'
 import { buildSnapshot } from '../src/lib/snapshot'
-import { buildReport } from '../src/lib/compute'
+import { buildReport, monthFills, rowTint } from '../src/lib/compute'
 import type { ReportModel } from '../src/lib/compute'
+import type { SnapshotRow } from '../src/lib/types'
 import { importWorkbook } from '../src/lib/xlsxImport'
 import { buildWorkbook } from '../src/lib/xlsxExport'
 
@@ -44,8 +45,16 @@ describe.skipIf(!existsSync(FIXTURES))('cell colours', () => {
       const v = row.values
 
       // B–H: yellow while a contract is on hold, green for an approved case
-      // this month, and nothing otherwise. Premium alone does not count.
-      const tint = row.status === 'suspended' ? YELLOW : v.caseApprovedMonth > 0 ? GREEN : undefined
+      // this month, pink for a submitted case not yet approved, and nothing
+      // otherwise. Premium alone does not count.
+      const tint =
+        row.status === 'suspended'
+          ? YELLOW
+          : v.caseApprovedMonth > 0
+            ? GREEN
+            : v.caseSubMonth > 0
+              ? PINK
+              : undefined
       for (const col of ['B', 'C', 'D', 'E', 'G', 'H']) {
         expect(fill(ws, `${col}${r}`), `${at} ${col} ไฮไลต์แถว`).toBe(tint)
       }
@@ -58,13 +67,13 @@ describe.skipIf(!existsSync(FIXTURES))('cell colours', () => {
         expect(fill(ws, `${col}${r}`), `${at} ${col} สะสมปี`).toBe(GREEN)
       }
 
-      // The month block: submitted cases stand on their own, everything else
+      // The month block: submitted figures stand on their own, everything else
       // follows the approved case count.
       const approved = v.caseApprovedMonth > 0
       const month: [string, boolean, string][] = [
         ['M', v.caseSubMonth > 0, PINK],
         ['N', approved, GREEN],
-        ['O', approved && v.fypSubMonth > 0, PINK],
+        ['O', v.fypSubMonth > 0, PINK],
         ['P', approved && v.fypApprovedMonth > 0, GREEN],
         ['Q', approved && v.fycAllMonth > 0, BLUE],
         ['R', approved && v.fycLifeMonth > 0, BLUE],
@@ -223,3 +232,40 @@ async function exportVp7(): Promise<{ ws: Worksheet; model: ReportModel }> {
   await wb.xlsx.load(await blob.arrayBuffer())
   return { ws: wb.worksheets[0], model }
 }
+
+/**
+ * No roster in the fixtures has a submitted case still waiting for approval, so
+ * the sweep above never meets one. The rule is pinned here instead.
+ */
+describe('submitted but not yet approved', () => {
+  const month = (v: Partial<SnapshotRow>) =>
+    ({
+      caseSubMonth: 0,
+      caseApprovedMonth: 0,
+      fypSubMonth: 0,
+      fypApprovedMonth: 0,
+      fycAllMonth: 0,
+      fycLifeMonth: 0,
+      ...v,
+    }) as SnapshotRow
+
+  it('tints B–H pink, below an approval and a contract on hold', () => {
+    const waiting = month({ caseSubMonth: 1 })
+    const both = month({ caseSubMonth: 1, caseApprovedMonth: 1 })
+    expect(rowTint({ status: 'active', values: waiting })).toBe('submitted')
+    expect(rowTint({ status: 'active', values: both })).toBe('produced')
+    expect(rowTint({ status: 'suspended', values: waiting })).toBe('suspended')
+    // Submitted premium alone is not a submitted case.
+    expect(rowTint({ status: 'active', values: month({ fypSubMonth: 5_000 }) })).toBeNull()
+  })
+
+  it('paints submitted premium pink with or without an approved case', () => {
+    expect(monthFills(month({ fypSubMonth: 5_000 })).fypSub).toBe(true)
+    expect(monthFills(month({ fypSubMonth: 5_000, caseApprovedMonth: 1 })).fypSub).toBe(true)
+    expect(monthFills(month({})).fypSub).toBe(false)
+    // Approved premium and FYC still need an approved case behind them.
+    const unbacked = monthFills(month({ fypApprovedMonth: 5_000, fycAllMonth: 900 }))
+    expect(unbacked.fypApproved).toBe(false)
+    expect(unbacked.fycAll).toBe(false)
+  })
+})
