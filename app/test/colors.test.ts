@@ -84,12 +84,14 @@ describe.skipIf(!existsSync(FIXTURES))('cell colours', () => {
 
       // The grid: a month that produced takes its quarter, a month already gone
       // by with nothing in it is greyed out, and the months ahead stay blank.
+      // The round's own month is greyed only once the round was cut on its last
+      // day, which this round was not.
       GRID_COLUMNS.forEach((col, m) => {
         const value = row.months[m]
         const want =
           value != null && value > 0
             ? QUARTER[Math.floor(m / 3)]
-            : m < dataMonth
+            : m < dataMonth || (m === dataMonth && model.dataMonthClosed)
               ? GRAY
               : undefined
         expect(fill(ws, `${col}${r}`), `${at} กริดเดือนที่ ${m + 1}`).toBe(want)

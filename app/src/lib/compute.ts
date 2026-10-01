@@ -1,4 +1,4 @@
-import { buddhistYear, issueYearFrom, monthIndex } from './format'
+import { buddhistYear, isMonthEnd, issueYearFrom, monthIndex } from './format'
 import type { Agent, LimraEntry, LimraUnit, Snapshot, SnapshotRow } from './types'
 
 /** The two rungs of the FYC ladder, both confirmed against every source workbook. */
@@ -177,10 +177,14 @@ export function gridCellState(
   value: number | null,
   month: number,
   dataMonth: number,
+  dataMonthClosed: boolean,
 ): GridCellState {
   if (value != null && value > 0) return 'filled'
-  // The month the snapshot lands in is still open, so only earlier ones are missed.
-  return month < dataMonth ? 'missed' : 'ahead'
+  if (month < dataMonth) return 'missed'
+  // The month the snapshot lands in counts as missed too, but only once the
+  // round was cut on its last day: before that its figure is still coming in,
+  // and an empty cell means we do not know yet rather than nothing happened.
+  return month === dataMonth && dataMonthClosed ? 'missed' : 'ahead'
 }
 
 /**
@@ -241,6 +245,8 @@ export interface ReportModel {
   dataYear: number
   /** 0-based month the snapshot covers — the line between missed and unspent months. */
   dataMonthIndex: number
+  /** The round was cut on the last day of its month, so that month is settled. */
+  dataMonthClosed: boolean
   careerYear: number
   rows: ReportRow[]
   summary: SummaryLine[]
@@ -316,6 +322,7 @@ export function buildReport(input: BuildInput): ReportModel {
     monthLabel: input.monthLabel,
     dataYear,
     dataMonthIndex: monthIndex(snapshot.asOfDate),
+    dataMonthClosed: isMonthEnd(snapshot.asOfDate),
     careerYear: dataYear + 1,
     rows,
     summary: summaryLines(snapshot.agency),

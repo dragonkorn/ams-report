@@ -117,7 +117,9 @@ export async function buildWorkbook(model: ReportModel): Promise<Blob> {
   writeHeader(ws, model)
 
   const firstRow = 6
-  model.rows.forEach((row, i) => writeAgentRow(ws, firstRow + i, row, model.dataMonthIndex))
+  model.rows.forEach((row, i) =>
+    writeAgentRow(ws, firstRow + i, row, model.dataMonthIndex, model.dataMonthClosed),
+  )
 
   // The blocks below the roster float with it, exactly as they do in the source.
   const gapRow = firstRow + model.rows.length
@@ -230,7 +232,13 @@ function writeHeader(ws: Worksheet, model: ReportModel) {
   set(ws, 'AL5', '9/12', { bold: true, fill: FILL.paleGreen })
 }
 
-function writeAgentRow(ws: Worksheet, r: number, row: ReportRow, dataMonth: number) {
+function writeAgentRow(
+  ws: Worksheet,
+  r: number,
+  row: ReportRow,
+  dataMonth: number,
+  dataMonthClosed: boolean,
+) {
   ws.getRow(r).height = 24
   const highlight = rowHighlight(row)
 
@@ -281,7 +289,7 @@ function writeAgentRow(ws: Worksheet, r: number, row: ReportRow, dataMonth: numb
   // cell is ruled either way, or the grid breaks up into floating boxes.
   GRID_COLUMNS.forEach((col, m) => {
     const value = row.months[m]
-    const state = gridCellState(value ?? null, m, dataMonth)
+    const state = gridCellState(value ?? null, m, dataMonth, dataMonthClosed)
     set(ws, `${col}${r}`, state === 'filled' ? value! : null, {
       align: 'center',
       format: NUM,

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { activeGrid } from '../src/lib/compute'
+import { activeGrid, gridCellState } from '../src/lib/compute'
+import { isMonthEnd } from '../src/lib/format'
 import type { Snapshot, SnapshotRow } from '../src/lib/types'
 
 const CODE = '100017'
@@ -68,5 +69,45 @@ describe('the month grid follows the newest import of a month', () => {
     const { months, provisionalMonth } = activeGrid([snapshot('2026-08-21', 15, 3)], CODE)
     expect(months[7]).toBe(3)
     expect(provisionalMonth).toBe(7)
+  })
+})
+
+/**
+ * An empty cell in the month the round sits in means two different things either
+ * side of month end: before it, the month is still being counted; on it, the
+ * month is closed and nothing came in. No fixture is cut on a month end — all
+ * five source workbooks are dated 30 July, a 31-day month — so the rule is
+ * pinned here rather than through an export.
+ */
+describe('greying the month the round sits in', () => {
+  const JULY = 6
+
+  it('leaves the round’s own month open while the round is mid-month', () => {
+    expect(gridCellState(null, JULY, JULY, false)).toBe('ahead')
+    expect(gridCellState(0, JULY, JULY, false)).toBe('ahead')
+  })
+
+  it('greys the round’s own month once the round is cut on its last day', () => {
+    expect(gridCellState(null, JULY, JULY, true)).toBe('missed')
+    expect(gridCellState(0, JULY, JULY, true)).toBe('missed')
+  })
+
+  it('leaves a month that produced, and the months ahead, alone either way', () => {
+    for (const closed of [false, true]) {
+      expect(gridCellState(2, JULY, JULY, closed)).toBe('filled')
+      expect(gridCellState(null, JULY + 1, JULY, closed)).toBe('ahead')
+      // Months before the round's own have never depended on the cut date.
+      expect(gridCellState(null, JULY - 1, JULY, closed)).toBe('missed')
+    }
+  })
+
+  it('reads month end off the calendar, short months included', () => {
+    expect(isMonthEnd('2026-07-31')).toBe(true)
+    expect(isMonthEnd('2026-07-30')).toBe(false) // how every source workbook is dated
+    expect(isMonthEnd('2026-06-30')).toBe(true)
+    expect(isMonthEnd('2026-02-28')).toBe(true)
+    expect(isMonthEnd('2028-02-29')).toBe(true) // a leap February
+    expect(isMonthEnd('2028-02-28')).toBe(false)
+    expect(isMonthEnd('2026-12-31')).toBe(true)
   })
 })

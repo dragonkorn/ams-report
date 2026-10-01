@@ -90,6 +90,18 @@ export function monthIndex(iso: string): number {
 }
 
 /**
+ * True when an ISO date is the last day of its own month — what tells us the
+ * round was cut on a month that has closed. The day is read off the string
+ * rather than through a local `Date`, which parses `YYYY-MM-DD` as UTC and can
+ * hand back the day before.
+ */
+export function isMonthEnd(iso: string): boolean {
+  const [year, month, day] = iso.split('-').map(Number)
+  // Day zero of the following month is the last day of this one.
+  return new Date(Date.UTC(year, month, 0)).getUTCDate() === day
+}
+
+/**
  * `วันที่ 30 ก.ค.2569` → `2026-07-30`.
  *
  * Used to check the date typed into a source workbook against the round the

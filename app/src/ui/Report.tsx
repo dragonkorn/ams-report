@@ -128,7 +128,12 @@ export function Report({
         </thead>
         <tbody>
           {model.rows.map((row) => (
-            <AgentRow key={row.code} row={row} dataMonth={model.dataMonthIndex} />
+            <AgentRow
+              key={row.code}
+              row={row}
+              dataMonth={model.dataMonthIndex}
+              dataMonthClosed={model.dataMonthClosed}
+            />
           ))}
           <TotalRow model={model} />
         </tbody>
@@ -196,7 +201,15 @@ export function Report({
   )
 }
 
-function AgentRow({ row, dataMonth }: { row: ReportRow; dataMonth: number }) {
+function AgentRow({
+  row,
+  dataMonth,
+  dataMonthClosed,
+}: {
+  row: ReportRow
+  dataMonth: number
+  dataMonthClosed: boolean
+}) {
   // Suspended contracts and this month's producers are tinted, as in the source.
   const tint = rowTint(row)
   const highlight = tint ? ` row-${tint}` : ''
@@ -239,7 +252,7 @@ function AgentRow({ row, dataMonth }: { row: ReportRow; dataMonth: number }) {
         {fmtMoney(row.values.fycLifeMonth)}
       </td>
       {row.months.map((value, m) => {
-        const state = gridCellState(value ?? null, m, dataMonth)
+        const state = gridCellState(value ?? null, m, dataMonth, dataMonthClosed)
         const fill =
           state === 'filled'
             ? `band-q${Math.floor(m / 3) + 1}`
